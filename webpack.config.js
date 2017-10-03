@@ -19,10 +19,10 @@ module.exports = {
   stats: 'errors-only',
   module: {
     rules: [
-      { 
-        test: /\.xml$/, 
+      {
+        test: /\.txt$/,
         exclude: /node_modules/,
-        loader: 'xml-loader' 
+        use: 'raw-loader'
       },
       {
         test: /\.jsx$/,

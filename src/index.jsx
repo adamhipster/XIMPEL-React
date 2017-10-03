@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
 // import registerServiceWorker from './registerServiceWorker';
-import playlist from './playlist.xml';
 
 ReactDOM.render(
   <App />,
