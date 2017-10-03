@@ -1,0 +1,15 @@
+<ximpel>
+    <config>
+        <enableControls>true</enableControls>
+        <controlsDisplayMethod>overlay</controlsDisplayMethod>
+    </config>
+    <playlist>
+        <subject id="lesson3">
+            <sequence>
+                <message text="You made it to the end of the course!" />
+            </sequence>
+        </subject>
+    </playlist>
+</ximpel>
+
+
