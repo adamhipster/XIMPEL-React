@@ -1,7 +1,10 @@
 import React, { Component } from 'react';
-import Autolinker from 'autolinker';
 import './App.css';
 import playlist from './playlist.xml';
+
+function capitalize(element){
+  return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
+}
 
 class Playlist extends Component {
   constructor(props) {
@@ -17,17 +20,27 @@ class Playlist extends Component {
       <div className="yolo">
         {
           Object.keys(data).map( element => {
-            const elementName = element.toString().charAt(0).toUpperCase() + element.toString().slice(1);;
+            const elementName = capitalize(element);
             return data[element].map( (element, i) => {
               console.log('elementName');
               console.log(elementName.toString());
               console.log(element);
+              let child = Object.keys(element).filter( value =>  value !== "$" );
+              child = child.length > 0? child[0] : child;
+              console.log(child);
+              const childName = capitalize(child);
+              console.log(element[child])
+              child = element[child] !== undefined? element[child][0] : child;
+              
               {/* console.log(React); */}
               return (
                 <div key={i}>
             
                   {/* component, props, children */}
-                  {React.createElement(eval(elementName), element.$, Object.keys(element))}
+                  {
+                    React.createElement(eval(elementName), element.$, 
+                      React.createElement(eval(childName), child.$, null))
+                    }
             
                 </div>
               );
@@ -66,7 +79,7 @@ class Hey extends Component {
     const {text} = this.props;
 
     return (
-      <p>{text}</p>
+      <p>boilerplate --- dynamic: {text}</p>
     );
   }
 }
