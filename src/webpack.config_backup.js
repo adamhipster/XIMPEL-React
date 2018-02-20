@@ -2,6 +2,8 @@ const autoprefixer = require('autoprefixer');
 
 module.exports = {
   entry: [
+    'webpack-dev-server/client?http://localhost:8080',
+    'webpack/hot/only-dev-server',
     './src/index.jsx'
   ],
   output: {
@@ -30,7 +32,7 @@ module.exports = {
       {
         test: /\.jsx$/,
         exclude: /node_modules/,
-        loader: ['babel-loader?presets[]=react'],
+        loader: 'babel-loader'
       },
       {
         test: /\.css$/,
@@ -48,7 +50,6 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['*', '.js', '.jsx'],
-
+    extensions: ['*', '.js', '.jsx']
   },
 };

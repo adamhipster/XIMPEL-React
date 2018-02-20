@@ -63,8 +63,8 @@ class Yolo extends Component {
   render(){
     return(
       <div className="way!">
-        {this.props.children}
         way!
+        {this.props.children}
       </div>
     );
   }
@@ -93,7 +93,7 @@ class App extends Component {
 
   render() {
     return (
-      <div>{<Playlist data={this.playlist} />}</div>
+      <div>hot reload is possible!! {<Playlist data={this.playlist} />}</div>
     );
   }
 }

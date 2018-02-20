@@ -5,7 +5,7 @@ import App from './App';
 
 ReactDOM.render(
   <App />,
-  document.getElementById('root')
+  document.getElementById('app')
 );
 
 // enable this when you're programming a progressive web app

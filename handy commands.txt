@@ -1,0 +1,3 @@
+http://localhost:8080/dist/
+webpack-dev-server --hot --inline
+webpack --progress --color --watch --display-error-details --debug --devtool source-map --output-pathinfo
