@@ -20,7 +20,17 @@ module.exports = {
       { 
         test: /\.xml$/, 
         exclude: /node_modules/,
-        loader: 'xml-loader' 
+        use: {
+          loader: 'xml-loader',
+          options: {
+            explicitArray: true,
+            explicitChildren: true,
+            preserveChildrenOrder: true,
+            attrkey: "attributes",
+            childkey: "children",
+            charkey: "text"
+          },
+        },
       },
       {
         test: /\.txt$/,

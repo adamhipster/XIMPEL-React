@@ -1,7 +1,11 @@
 <ximpel>
-  <hey text="You made it to the end of the course!" />
-  <hey text="Hello World!" />
-  <yolo sup="something">
-    <hey text="yay!" />
+  <yolo sup="level1">
+    <yolo sup="level2">
+      <yolo sup="level3">
+        Level 3 text
+      </yolo>
+    </yolo>
+    <hey text="wow... -- first nest" />
   </yolo>
+  <hey text="You made it to the end!" />
 </ximpel>

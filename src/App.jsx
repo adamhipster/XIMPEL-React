@@ -6,6 +6,18 @@ function capitalize(element){
   return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
 }
 
+function createChildren(element){
+  let children = [];
+  for(let j = 0; j < (element.children?element.children.length : 0); j++){
+    const child = element.children? element.children[j] : null;
+    const childName = element.children? capitalize(child["#name"]) : null;
+    const childAttributes = element.children? child.attributes : null;
+    const grandChildren = child.children? createChildren(child) : null;
+    children.push(React.createElement(eval(childName), {...child.attributes, text: child.text}, grandChildren));
+  }
+  return children;
+}
+
 class Playlist extends Component {
   constructor(props) {
     super(props);
@@ -14,42 +26,20 @@ class Playlist extends Component {
   render(){
     const data = this.props.data.ximpel;
 
-    console.log('data');
-    console.log(data);
     return (
       <div className="yolo">
         {
-          Object.keys(data).map( element => {
-            const elementName = capitalize(element);
-            return data[element].map( (element, i) => {
-              console.log('elementName');
-              console.log(elementName.toString());
-              console.log(element);
-              let child = Object.keys(element).filter( value =>  value !== "$" );
-              child = child.length > 0? child[0] : child;
-              console.log(child);
-              const childName = capitalize(child);
-              console.log(element[child])
-              child = element[child] !== undefined? element[child][0] : child;
-              
-              {/* console.log(React); */}
-              return (
-                <div key={i}>
-            
-                  {/* component, props, children */}
-                  {
-                    React.createElement(eval(elementName), element.$, 
-                      React.createElement(eval(childName), child.$, null))
-                    }
-            
-                </div>
-              );
-            })
-            
+          data.children.map( (element, i) => {
+            const elementName = capitalize(element["#name"]);
+            const children = createChildren(element);
+            console.log('kids ', children);
+            return (
+              <div key={i}>
+                { React.createElement(eval(elementName), {...element.attributes, text: element.text}, children) }
+              </div>
+            );
           })
         }
-
-  
       </div>
     );
   }
@@ -61,9 +51,14 @@ class Yolo extends Component {
   }
 
   render(){
+    const {sup, text} = this.props;
+    console.log('props');
+    console.log(this.props);
+
     return(
       <div className="way!">
-        way!
+        {sup} <br />
+        {text}
         {this.props.children}
       </div>
     );
