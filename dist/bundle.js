@@ -18304,6 +18304,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _react = __webpack_require__(2);
 
 var _react2 = _interopRequireDefault(_react);
@@ -18332,48 +18334,44 @@ function capitalize(element) {
   return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
 }
 
-var Playlist = function (_Component) {
-  _inherits(Playlist, _Component);
+function createChildren(element) {
+  var children = [];
+  for (var j = 0; j < (element.children ? element.children.length : 0); j++) {
+    var child = element.children ? element.children[j] : null;
+    var childName = element.children ? capitalize(child["#name"]) : null;
+    var childAttributes = element.children ? child.attributes : null;
+    var grandChildren = child.children ? createChildren(child) : null;
+    children.push(_react2.default.createElement(eval(childName), _extends({}, child.attributes, { text: child.text }), grandChildren));
+  }
+  return children;
+}
 
-  function Playlist(props) {
-    _classCallCheck(this, Playlist);
+var SubjectRenderer = function (_Component) {
+  _inherits(SubjectRenderer, _Component);
 
-    return _possibleConstructorReturn(this, (Playlist.__proto__ || Object.getPrototypeOf(Playlist)).call(this, props));
+  function SubjectRenderer(props) {
+    _classCallCheck(this, SubjectRenderer);
+
+    return _possibleConstructorReturn(this, (SubjectRenderer.__proto__ || Object.getPrototypeOf(SubjectRenderer)).call(this, props));
   }
 
-  _createClass(Playlist, [{
+  _createClass(SubjectRenderer, [{
     key: 'render',
     value: function render() {
-      var data = this.props.data.ximpel;
+      var subjectNo = 1;
+      var element = _playlist2.default.ximpel.children[subjectNo];
+      var elementName = capitalize(element["#name"]);
+      var children = createChildren(element);
+      console.log('kids ', element);
 
-      console.log('data');
-      console.log(data);
       return _react2.default.createElement(
         'div',
-        { className: 'yolo' },
-        Object.keys(data).map(function (element) {
-          var elementName = capitalize(element);
-          return data[element].map(function (element, i) {
-            console.log('elementName');
-            console.log(elementName.toString());
-            console.log(element);
-            var child = Object.keys(element).filter(function (value) {
-              return value !== "$";
-            });
-            child = child.length > 0 ? child[0] : child;
-            console.log(child);
-            var childName = capitalize(child);
-            console.log(element[child]);
-            child = element[child] !== undefined ? element[child][0] : child;
-
-            {/* console.log(React); */}
-            return _react2.default.createElement(
-              'div',
-              { key: i },
-              _react2.default.createElement(eval(elementName), element.attributes, _react2.default.createElement(eval(childName), child.attributes, null))
-            );
-          });
-        })
+        { className: 'playlist' },
+        _react2.default.createElement(
+          'div',
+          null,
+          _react2.default.createElement(eval(elementName), _extends({}, element.attributes, { text: element.text }), children)
+        )
       );
     }
   }, {
@@ -18383,11 +18381,71 @@ var Playlist = function (_Component) {
     }
   }]);
 
-  return Playlist;
+  return SubjectRenderer;
 }(_react.Component);
 
-var Yolo = function (_Component2) {
-  _inherits(Yolo, _Component2);
+var Media = function (_Component2) {
+  _inherits(Media, _Component2);
+
+  function Media(props) {
+    _classCallCheck(this, Media);
+
+    return _possibleConstructorReturn(this, (Media.__proto__ || Object.getPrototypeOf(Media)).call(this, props));
+  }
+
+  _createClass(Media, [{
+    key: 'render',
+    value: function render() {
+
+      return _react2.default.createElement(
+        'div',
+        { className: 'media' },
+        this.props.children
+      );
+    }
+  }, {
+    key: '__reactstandin__regenerateByEval',
+    value: function __reactstandin__regenerateByEval(key, code) {
+      this[key] = eval(code);
+    }
+  }]);
+
+  return Media;
+}(_react.Component);
+
+var Subject = function (_Component3) {
+  _inherits(Subject, _Component3);
+
+  function Subject(props) {
+    _classCallCheck(this, Subject);
+
+    return _possibleConstructorReturn(this, (Subject.__proto__ || Object.getPrototypeOf(Subject)).call(this, props));
+  }
+
+  _createClass(Subject, [{
+    key: 'render',
+    value: function render() {
+      var id = this.props.id;
+
+
+      return _react2.default.createElement(
+        'div',
+        { className: 'subject', id: id },
+        this.props.children
+      );
+    }
+  }, {
+    key: '__reactstandin__regenerateByEval',
+    value: function __reactstandin__regenerateByEval(key, code) {
+      this[key] = eval(code);
+    }
+  }]);
+
+  return Subject;
+}(_react.Component);
+
+var Yolo = function (_Component4) {
+  _inherits(Yolo, _Component4);
 
   function Yolo(props) {
     _classCallCheck(this, Yolo);
@@ -18398,7 +18456,9 @@ var Yolo = function (_Component2) {
   _createClass(Yolo, [{
     key: 'render',
     value: function render() {
-      var sup = this.props.sup;
+      var _props = this.props,
+          sup = _props.sup,
+          text = _props.text;
 
 
       return _react2.default.createElement(
@@ -18407,7 +18467,7 @@ var Yolo = function (_Component2) {
         sup,
         ' ',
         _react2.default.createElement('br', null),
-        'way!',
+        text,
         this.props.children
       );
     }
@@ -18421,8 +18481,8 @@ var Yolo = function (_Component2) {
   return Yolo;
 }(_react.Component);
 
-var Hey = function (_Component3) {
-  _inherits(Hey, _Component3);
+var Hey = function (_Component5) {
+  _inherits(Hey, _Component5);
 
   function Hey(props) {
     _classCallCheck(this, Hey);
@@ -18433,14 +18493,16 @@ var Hey = function (_Component3) {
   _createClass(Hey, [{
     key: 'render',
     value: function render() {
-      var text = this.props.text;
+      var message = this.props.message;
 
+      console.log('props');
+      console.log(this.props);
 
       return _react2.default.createElement(
         'p',
         null,
         'boilerplate --- dynamic: ',
-        text
+        message
       );
     }
   }, {
@@ -18453,17 +18515,16 @@ var Hey = function (_Component3) {
   return Hey;
 }(_react.Component);
 
-var App = function (_Component4) {
-  _inherits(App, _Component4);
+var App = function (_Component6) {
+  _inherits(App, _Component6);
 
   function App(props) {
     _classCallCheck(this, App);
 
-    var _this4 = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
+    var _this6 = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
 
-    _this4.playlist = _playlist2.default;
-    console.log(_this4.playlist);
-    return _this4;
+    console.log(_this6.playlist);
+    return _this6;
   }
 
   _createClass(App, [{
@@ -18473,7 +18534,7 @@ var App = function (_Component4) {
         'div',
         null,
         'hot reload is possible!! ',
-        _react2.default.createElement(Playlist, { data: this.playlist })
+        _react2.default.createElement(SubjectRenderer, { subject: undefined })
       );
     }
   }, {
@@ -18500,7 +18561,10 @@ exports.default = _default;
   }
 
   reactHotLoader.register(capitalize, 'capitalize', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
-  reactHotLoader.register(Playlist, 'Playlist', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
+  reactHotLoader.register(createChildren, 'createChildren', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
+  reactHotLoader.register(SubjectRenderer, 'SubjectRenderer', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
+  reactHotLoader.register(Media, 'Media', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
+  reactHotLoader.register(Subject, 'Subject', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
   reactHotLoader.register(Yolo, 'Yolo', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
   reactHotLoader.register(Hey, 'Hey', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
   reactHotLoader.register(App, 'App', '/Users/melvinroest/dev/thesis/ximpel_react/src/App.jsx');
@@ -19137,7 +19201,7 @@ module.exports = function (css) {
 /* 36 */
 /***/ (function(module, exports) {
 
-module.exports = {"ximpel":{"$":{"attr":"test"},"yolo":[{"$":{"sup":"something"},"hey":[{"$":{"text":"yay!"},"yolo":[{"$":{"sup":"test"},"hey":[{"$":{"text":"second nest"}}]}]},{"$":{"text":"wow..."}}]}],"hey":[{"$":{"text":"You made it to the end of the course!"}},{"$":{"text":"Hello World!"}}]}}
+module.exports = {"ximpel":{"#name":"ximpel","children":[{"attributes":{"id":"lesson1"},"#name":"subject","children":[{"#name":"media","children":[{"attributes":{"sup":"level1"},"#name":"yolo","children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}],"yolo":[{"attributes":{"sup":"level1"},"children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}]}],"media":[{"children":[{"attributes":{"sup":"level1"},"#name":"yolo","children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}],"yolo":[{"attributes":{"sup":"level1"},"children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}]}]},{"attributes":{"id":"lesson2"},"#name":"subject","children":[{"#name":"media","children":[{"attributes":{"text":"You made it to the end!"},"#name":"hey"}],"hey":[{"attributes":{"text":"You made it to the end!"}}]}],"media":[{"children":[{"attributes":{"text":"You made it to the end!"},"#name":"hey"}],"hey":[{"attributes":{"text":"You made it to the end!"}}]}]}],"subject":[{"attributes":{"id":"lesson1"},"children":[{"#name":"media","children":[{"attributes":{"sup":"level1"},"#name":"yolo","children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}],"yolo":[{"attributes":{"sup":"level1"},"children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}]}],"media":[{"children":[{"attributes":{"sup":"level1"},"#name":"yolo","children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}],"yolo":[{"attributes":{"sup":"level1"},"children":[{"attributes":{"sup":"level2"},"#name":"yolo","children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]},{"attributes":{"text":"wow... -- first nest"},"#name":"hey"}],"yolo":[{"attributes":{"sup":"level2"},"children":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"},"#name":"yolo"}],"yolo":[{"text":"\n            Level 3 text\n          ","attributes":{"sup":"level3"}}]}],"hey":[{"attributes":{"text":"wow... -- first nest"}}]}]}]},{"attributes":{"id":"lesson2"},"children":[{"#name":"media","children":[{"attributes":{"text":"You made it to the end!"},"#name":"hey"}],"hey":[{"attributes":{"text":"You made it to the end!"}}]}],"media":[{"children":[{"attributes":{"text":"You made it to the end!"},"#name":"hey"}],"hey":[{"attributes":{"text":"You made it to the end!"}}]}]}]}}
 
 /***/ }),
 /* 37 */

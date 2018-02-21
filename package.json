@@ -38,5 +38,8 @@
     "webpack-dev-server": "^2.11.1",
     "xml-loader": "^1.2.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "react-router-dom": "^4.2.2",
+    "react-youtube": "^7.5.0"
+  }
 }

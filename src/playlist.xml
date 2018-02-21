@@ -1,11 +1,26 @@
 <ximpel>
-  <yolo sup="level1">
-    <yolo sup="level2">
-      <yolo sup="level3">
-        Level 3 text
+
+  <subject id="lesson1">
+    <media>
+      <YouTube id="DrgML20YxaA" width="800" height="800" left="500" top="100" />
+      <image src="roads.jpg" width="400" height="400" left="100" top="100"/>
+      <yolo sup="level1">
+        <yolo sup="level2">
+          <yolo sup="level3">
+            Level 3 text
+          </yolo>
+        </yolo>
+        <hey message="wow... -- first nest" />
+        <overlay message="go to lesson 2" leadsTo="lesson2" />
       </yolo>
-    </yolo>
-    <hey text="wow... -- first nest" />
-  </yolo>
-  <hey text="You made it to the end!" />
+    </media>
+  </subject>
+
+  <subject id="lesson2">
+    <media>
+      <hey message="You made it to the end!" />
+      <overlay message="go to lesson 1" leadsTo="lesson1" src="roads.jpg" width="400" height="400" left="200" top="200" />
+    </media>
+  </subject>
+
 </ximpel>
