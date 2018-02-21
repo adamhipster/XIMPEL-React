@@ -36,14 +36,11 @@ class SubjectRenderer extends Component {
       this.setState({
         currentSubjectNo: subjectNo
       });
-      console.log( topic, subjectNo );
     };
     var token = PubSub.subscribe('overlayUpdate', handleOverlay.bind(this));
   }
 
   render(){
-    console.log('render');
-    console.log(playlist);
     const subjectNo = this.state.currentSubjectNo;
     const element = playlist.ximpel.playlist[0].children[subjectNo];
     const elementName = "Subject";
@@ -143,7 +140,6 @@ class Video extends MediaType {
       width: width,
       height: height,
     }
-    console.log(this.state, 'hey');
     return(
        this.state.hasToRender && <div>
         <video preload="none" autoPlay style={styles} >
@@ -266,7 +262,6 @@ class YouTube extends MediaType {
 class Terminal extends MediaType {
   constructor(props) {
     super(props);
-    console.log(this.state);
     this.state = {
       ...this.state, 
       inputValue: "",
@@ -378,7 +373,6 @@ class Overlay extends Component {
   handleClick(leadsTo, event){
     for (let i = 0; i < playlist.ximpel.playlist[0].children.length; i++) {
       if(playlist.ximpel.playlist[0].children[i].attributes.id === leadsTo){
-        console.log(playlist.ximpel.playlist[0].children[i].attributes.id, leadsTo, i, event);
         PubSub.publish('overlayUpdate', i);
         break;
       }
