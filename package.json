@@ -22,6 +22,7 @@
     "autoprefixer": "^7.1.4",
     "babel-core": "^6.26.0",
     "babel-loader": "^7.1.2",
+    "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-preset-es2015": "^6.24.1",
@@ -39,6 +40,10 @@
     "xml-loader": "^1.2.1"
   },
   "dependencies": {
+    "babel-preset-stage-1": "^6.24.1",
+    "circular-json": "^0.5.1",
+    "lodash": "^4.17.5",
+    "radium": "^0.22.0",
     "react-router-dom": "^4.2.2",
     "react-youtube": "^7.5.0"
   }

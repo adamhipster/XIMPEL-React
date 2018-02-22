@@ -3,26 +3,28 @@
     <subject id="lesson1">
       <media>
         <message message="PWD Tutorial" duration="5" />
-        <textblock duration="10" message="Type in pwd and the terminal displays which directory you are working in." width="600px" height="800px" x="0px" y="100px" color="#0f0" fontsize='50px' fontcolor="#fff"/>
-        <terminal x="800px" duration="15"/>    
-        <video x="0px" y="200px" width="400px" height="400px"> -->
+        <video x="0px" y="200px" width="400px" height="400px" duration="10">
             <source file="./pwd" extensions="mp4" types="video/mp4" />
-            <overlay leadsTo="lesson2" width="600px" height="75px" x="500px" y="500px" message="next lesson"/>
+            <overlay score="+200" scoreId="yay" leadsTo="lesson2" width="600px" height="75px" x="500px" y="500px" message="next lesson"/>
         </video>
       </media>
-      <!-- <media>
-        <youtube id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
-      </media> -->
+      <media>
+        <textblock duration="5" message="Type in pwd and the terminal displays which directory you are working in." width="600px" height="800px" x="0px" y="100px" color="#0f0" fontsize='50px' fontcolor="#fff"/>
+        <terminal x="800px" duration="10"/>    
+      </media>
+      <media>
+        <message message="test" />
+      </media>
+      <youtube duration="10" id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
     </subject>
 
      <subject id="lesson2">
         <media>
           <textblock text="The command ls helps you to list the files that are in the current directory you are working in." width="600px" height="800px" x="0px" y="0px" color="#0f0" fontsize='50px' />
-      
           <terminal />    
           <video x="0px" y="0px" width="600px" height="900px">
               <source file="ls" extensions="mp4" types="video/mp4" />
-              <overlay leadsTo="lesson3" width="600px" height="75px" x="600px" y="500px" message="next lesson"/>
+              <overlay score="+1000" scoreId="yay" leadsTo="lesson3" width="600px" height="75px" x="600px" y="500px" message="next lesson"/>
           </video>
         </media>
     </subject>
@@ -30,14 +32,14 @@
     <subject id="lesson3">
       <media>
         <message message="Almost there!">
-            <overlay leadsTo="lesson4" width="600px" height="75px" x="0px" y="500px" message="next lesson"/>
+            <overlay score="*400" scoreId="yay" leadsTo="lesson4" width="600px" height="75px" x="0px" y="500px" message="next lesson"/>
         </message>
       </media>
     </subject>
 
     <subject id="lesson4">
         <media>
-            <message message="You made it to the end of the course!" />
+            <message message="You made it to the end of the course!" showScore="true" />
         </media>
     </subject>
 </playlist>

@@ -1,25 +1,45 @@
 import React, { Component } from 'react';
 import './App.css';
-import playlist from './playlist.xml';
+// import playlist from './playlist.xml';
+import playlist from './playlist_zaanse_schans.xml';
 import pubSub from './pubsub.js'
 import YouTubePlayer from './YouTube.js';
 import io from './socket.io.js';
+import JSON from 'circular-json';
+import _ from 'lodash';
+import Radium from 'radium' //now it is possible to do inline CSS pseudo-classes
 
 function capitalize(element){
   return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
 }
 
-function createChildren(element){
-  let children = [];
-  for(let j = 0; j < (element.children?element.children.length : 0); j++){
-    const child = element.children? element.children[j] : null;
-    let childName = element.children? capitalize(child["#name"]) : null;
-    childName = childName === "Youtube"? "YouTube" : childName;
-    const childAttributes = element.children? child.attributes : null;
-    const grandChildren = child.children? createChildren(child) : null;
-    children.push(React.createElement(eval(childName), {...child.attributes, text: child.text}, grandChildren));
+function difference(object, base) {
+	function changes(object, base) {
+		return _.transform(object, function(result, value, key) {
+			if (!_.isEqual(value, base[key])) {
+				result[key] = (_.isObject(value) && _.isObject(base[key])) ? changes(value, base[key]) : value;
+			}
+		});
+	}
+	return changes(object, base);
+}
+
+function propsCompare(component1, component2){
+  if(component1.length !== component2.length){
+    return false;
   }
-  return children;
+  for(let i = 0; i < component1.length; i++){
+    const partialPropsComponent1 = _.omit(component1[i].props, 'children');
+    const partialPropsComponent2 = _.omit(component2[i].props, 'children');
+    if(Object.compare(partialPropsComponent1, partialPropsComponent2) === false){
+      return false;
+    }
+  }
+  return true;
+}
+
+Object.compare = (object, base) => {
+  return _.isEqual(difference(object, base), {})
 }
 
 class SubjectRenderer extends Component {
@@ -27,30 +47,160 @@ class SubjectRenderer extends Component {
     super(props);
     this.state = {
       currentSubjectNo: 0,
-      dummy: "dummy"
+      currentMediaItem: 0,
+      children: [],
+      stopCounter: 0,
+      mediaItems: [],
     }
+    this.createChildren = this.createChildren.bind(this);
+    this.selectSubtree = this.selectSubtree.bind(this);
+    this.handleMediaItemClick = this.handleMediaItemClick.bind(this);
+    this.determineMediaItems = this.determineMediaItems.bind(this);
+    this.getMediaItems = this.getMediaItems.bind(this);
   }
 
+  createChildren(element){ //assumes parallel play by default
+    let children = [];
+    let hasMedia = false;
+    //see if media tags are at the top
+    for(let j = 0; j < (element.children?element.children.length : 0); j++){
+      const child = element.children[j];
+      let childName = capitalize(child["#name"]);
+      childName = childName === "Youtube"? "YouTube" : childName;
+      const childAttributes = child.attributes;
+      const grandChildren = child.children? this.createChildren(child) : null;
+      children.push(React.createElement(eval(childName), {...child.attributes, text: child.text}, grandChildren));
+    }
+    return children;
+  }
+
+  selectSubtree(children){
+    const selectedElements = [];
+    const currentMediaItem = children[this.state.currentMediaItem];
+    selectedElements.push(currentMediaItem);
+    //also include randoms
+    for(let i = 0; i < children.length; i++){
+      if(children[i].type.toString() !== Media.toString()){
+        selectedElements.push(children[i]);
+      }
+    }
+    return selectedElements;
+  }
+
+  determineMediaItems(element){
+    let hasMediaItems = false;
+    for(let j = 0; j < (element.children?element.children.length : 0); j++){
+      const child = element.children[j];
+      if(child["#name"] === "media" && element.children[this.state.currentMediaItem] === child){
+        hasMediaItems = true;
+      }
+    }
+    return hasMediaItems;
+  }
+
+  getMediaItems(children){
+    const mediaItems = [];
+    for(let i = 0; i < children.length; i++){
+      if(children[i].type.toString() !== Media.toString()){
+        mediaItems.push(children[i]);
+      }
+      else{
+        for(let j = 0; j < children[i].props.children.length; j++){
+          mediaItems.push(children[i].props.children[j]);
+        }
+      }
+    }
+    return mediaItems;
+  }
+
+  //all pub-subs are here
   componentWillMount(){
-    var handleOverlay = function (topic, subjectNo) {
+    const handleOverlay = (topic, subjectNo) => {
       this.setState({
+        ...this.state,
         currentSubjectNo: subjectNo
       });
     };
-    var token = PubSub.subscribe('overlayUpdate', handleOverlay.bind(this));
+
+    const handleMediaStop = (topic, mediaElement) => {
+      const children = this.state.mediaItems;
+
+      for (let i = 0; i < children.length; i++) {
+        const element = children[i];
+        if(element.type.toString() === mediaElement._reactInternalFiber.type.toString()){
+          this.setState({
+            ...this.state,
+            stopCounter: this.state.stopCounter + 1
+          }, () => {
+            //to do: needs to improve to actual media items
+            if(this.state.stopCounter === children.length){
+              this.setState({
+                ...this.sate,
+                currentMediaItem: (this.state.currentMediaItem + 1),
+                stopCounter: 0
+              });
+            }
+          })
+        } 
+      }
+    }
+
+    PubSub.subscribe('overlayUpdate', handleOverlay.bind(this));
+    PubSub.subscribe('mediaStop', handleMediaStop.bind(this));
+  }
+
+  
+
+  handleMediaItemClick(e){
+    this.setState({
+      ...this.state,
+      currentMediaItem: (this.state.currentMediaItem + 1)
+    });
   }
 
   render(){
     const subjectNo = this.state.currentSubjectNo;
     const element = playlist.ximpel.playlist[0].children[subjectNo];
     const elementName = "Subject";
-    const children = createChildren(element);
+    let children = this.createChildren(element); //play everything in the subject
+    let hasMediaItems = this.determineMediaItems(element);
+    let mediaItems = [];
+    if(hasMediaItems){
+      children = this.selectSubtree(children);
+      mediaItems = this.getMediaItems(children);
+      // console.log('mediaItems render');
+      // console.log(this.state.currentMediaItem);
+      // console.log('propsCompare');
+      // console.log(this.state.mediaItems, mediaItems);
+      // console.log( propsCompare(this.state.mediaItems, mediaItems) === false);
+      console.log('media children');
+      console.log(children);
+
+      //ik denk dat het hier fout gaat want deze vergelijking gaat volgens mij fout
+      if(propsCompare(this.state.mediaItems, mediaItems) === false){
+        this.setState({
+          ...this.state,
+          mediaItems: mediaItems
+        });
+        PubSub.publish('new media items', this.state.mediaItems);
+      }
+    }
+
+    //an actual comparison goes wrong, while I know this is bad practice knowing which mediaItems you
+    //need to play is really handy.
+    if(JSON.stringify(Object.keys(this.state.children)) !== JSON.stringify(Object.keys(children))){
+      this.setState({
+        ...this.state,
+        children: children
+      });
+    }
 
     return (
       <div className="playlist">
         {
-          <div>
+          <div className="subjectRenderer">
             { React.createElement(eval(elementName), {...element.attributes, text: element.text}, children) }
+            <a href="#" style={{position: 'absolute', right: '50px'}} onClick={(e) => this.handleMediaItemClick(e)}>>></a>
           </div>
         }
       </div>
@@ -94,30 +244,96 @@ class MediaType extends Component {
   constructor(props){
     super(props);
     this.state = {
-      duration: 0,
+      duration: props.duration || 0,
       secondsElapsed: 0,
-      hasToRender: true
+      hasToRender: true,
+      playStatus: "MEDIA_PLAY"
     }
+    this.hasToRender = this.hasToRender.bind(this);
+    const newMediaItem = (topic, mediaItems) => {
+      for(let i = 0; i < mediaItems.length; i++){
+        if(mediaItems[i].type.toString() === this._reactInternalFiber.type.toString()){
+          this.intervalId = setInterval(() => {
+            this.setState({
+              ...this.state,
+              secondsElapsed: this.state.secondsElapsed + 1,
+              hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
+            })
+          }, 1000);
+          this.setState({
+            ...this.state,
+            playStatus: "MEDIA_PLAY",
+            duration: this.props.duration || 0,
+            // intervalId: intervalId
+          });
+        }
+      }
+    };
+    PubSub.subscribe('new media items', newMediaItem.bind(this)); //communicates with SubjectRenderer
+  }
+
+  componentWillMount(){
+    clearInterval(this.interval);
+    this.setState({
+      duration: 1,
+      secondsElapsed: 0,
+      hasToRender: true,
+      playStatus: "MEDIA_PLAY",
+      // intervalId: 0
+    });
   }
 
   componentDidMount() {
-    this.setState({
-      ...this.state,
-      duration: this.props.duration || 0
-    });
-    this.interval = setInterval(() => {
+    this.intervalId = setInterval(() => {
       this.setState({
         ...this.state,
         secondsElapsed: this.state.secondsElapsed + 1,
-        hasToRender: (this.state.secondsElapsed <= this.state.duration || this.state.duration === 0)
+        hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
       })
     }, 1000);
-    
+    this.setState({
+      ...this.state,
+      duration: this.props.duration || 0,
+      // intervalId: intervalId
+    });
   }
 
+  componentDidUpdate(){
+    if(this.state.secondsElapsed >= parseInt(this.state.duration || this.state.duration === 0) && this.state.playStatus === "MEDIA_PLAY"){
+      clearInterval(this.intervalId);
+      this.setState({
+        ...this.state,
+        secondsElapsed: 0,
+        hasToRender: false
+      })
+      // this.intervalId = setInterval(() => {
+      //   this.setState({
+      //     ...this.state,
+      //     secondsElapsed: this.state.secondsElapsed + 1,
+      //     hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
+      //   })
+      // }, 1000);
+    }
+  }
+
+  hasToRender(){
+    if(this.state.hasToRender === false && this.state.playStatus !== "MEDIA_STOP"){
+      PubSub.publish('mediaStop', this);
+      this.setState({
+        ...this.state,
+        playStatus: "MEDIA_STOP"
+      })
+    }
+    return this.state.hasToRender;
+  }
 
   componentWillUnmount() {
-    clearInterval(this.interval);
+    clearInterval(this.intervalId);
+    this.setState({
+      ...this.state,
+      secondsElapsed: 0,
+      hasToRender: false
+    })
   }
 
   render(){
@@ -128,6 +344,16 @@ class MediaType extends Component {
 class Video extends MediaType {
   constructor(props) {
     super(props);
+    this.state = {
+      key: 0
+    }
+    const changeKey = () => {
+      this.setState({
+        key: this.state.key + 1
+      });
+    }
+  
+    pubSub.subscribe('change key for video', changeKey.bind(this));
   }
 
   render(){
@@ -140,9 +366,11 @@ class Video extends MediaType {
       width: width,
       height: height,
     }
+    // console.log('video');
+    // console.log(this);
     return(
-       this.state.hasToRender && <div>
-        <video preload="none" autoPlay style={styles} >
+       this.hasToRender() && <div>
+        <video key={this.state.key} preload="none" autoPlay style={styles} >
           {
             this.props.children.map( element => 
               element.type.toString() === Overlay.toString()? null : element)
@@ -162,12 +390,20 @@ class Source extends MediaType {
     super(props);
   }
 
+  shouldComponentUpdate(nextProps, nextState){
+    if(this.props.file !== nextProps.file){
+      pubSub.publish('change key for video');
+    }
+    return true;
+  }
+
   render(){
     const {file, extensions, types} = this.props;
-
+    // console.log('source');
+    // console.log(this);
 
     return(
-      this.state.hasToRender && <source src={file+'.'+extensions} type={types} />
+      this.hasToRender() && <source src={file+'.'+extensions} type={types} />
     );
   }
 }
@@ -179,11 +415,12 @@ class Message extends MediaType {
   }
 
   render() {
-    const {message} = this.props;
+    const {message, showScore} = this.props;
 
     return (
-      this.state.hasToRender && <p>
-        {message}
+      this.hasToRender() && <p>
+        {message} 
+        {(showScore !== undefined)? " your score is: " + JSON.stringify(Overlay.score) : null}
         {this.props.children}
       </p>
     );
@@ -209,7 +446,7 @@ class Textblock extends MediaType {
     }
 
     return (
-      this.state.hasToRender && <p style={styles}>{message}</p>
+      this.hasToRender() && <p style={styles}>{message}</p>
     );
   }
 }
@@ -223,7 +460,7 @@ class Image extends MediaType {
     const {src, width, height, left, top} = this.props;
 
     return (
-      this.state.hasToRender && <img src={src} style= {{position: 'absolute', width: width+'px', height: height+'px', left: left+'px', top: top+'px'}} />
+      this.hasToRender() && <img src={src} style= {{position: 'absolute', width: width+'px', height: height+'px', left: left+'px', top: top+'px'}} />
     );
   }
 }
@@ -242,9 +479,9 @@ class YouTube extends MediaType {
         autoplay: 1
       }
     };
-
+    
     return (
-      this.state.hasToRender && <YouTubePlayer
+      this.hasToRender() && <YouTubePlayer
         style={{display: 'block', position: 'absolute', left: left+'px', top: top+'px'}}
         videoId={id}
         opts={opts}
@@ -252,6 +489,8 @@ class YouTube extends MediaType {
       />
     );
   }
+
+
 
   _onReady(event) {
     // access to player in all event handlers via event.target
@@ -318,7 +557,7 @@ class Terminal extends MediaType {
       top: y
     }
     return(
-      this.state.hasToRender && 
+      this.hasToRender() && 
         <div style={styles} className="terminalWrapper">
           <form className="terminalForm" onSubmit={(event) => this.handleSubmit(event)}>
             <input className="terminalInput" value={this.state.inputValue} onChange={event => this.updateInputValue(event)} />
@@ -340,7 +579,7 @@ class Yolo extends MediaType {
     const {sup, text} = this.props;
 
     return(
-      this.state.hasToRender && <div className="way!">
+      this.hasToRender() && <div className="way!">
         {sup} <br />
         {text}
         {this.props.children}
@@ -358,19 +597,25 @@ class Hey extends MediaType {
     const {message} = this.props;
 
     return (
-      this.state.hasToRender && <p>boilerplate --- dynamic: {message}</p>
+      this.hasToRender() && <p>boilerplate --- dynamic: {message}</p>
     );
   }
 }
 
 
 class Overlay extends Component {
+  static score = {};
+
   constructor(props) {
     super(props);
     this.handleClick = this.handleClick.bind(this);
+    this.handleScore = this.handleScore.bind(this);
   }
 
   handleClick(leadsTo, event){
+    if(this.props.score !== undefined){
+      this.handleScore();
+    }
     for (let i = 0; i < playlist.ximpel.playlist[0].children.length; i++) {
       if(playlist.ximpel.playlist[0].children[i].attributes.id === leadsTo){
         PubSub.publish('overlayUpdate', i);
@@ -379,24 +624,54 @@ class Overlay extends Component {
     }
   }
 
+  handleScore(){
+    if(this.props.score[0] === "*"){
+      Overlay.score[this.props.scoreId] = (Overlay.score[this.props.scoreId]? Overlay.score[this.props.scoreId] : 0) * parseInt(this.props.score.slice(1));
+    }
+    else if(this.props.score[0] === "/"){
+      Overlay.score[this.props.scoreId] = (Overlay.score[this.props.scoreId]? Overlay.score[this.props.scoreId] : 0) / parseInt(this.props.score.slice(1));
+    }
+    else if(this.props.score[0] === "+" || this.props.score[0] === "-"){
+      Overlay.score[this.props.scoreId] = (Overlay.score[this.props.scoreId]? Overlay.score[this.props.scoreId] : 0) + parseInt(this.props.score);
+    }
+    else{
+      console.log('invalid score your score is: ', this.props.score);
+    }
+  }
+
   render() { 
     const {message, leadsTo, src, width, height, x, y} = this.props;
+    let left = (parseInt(x) / 1.55) + "px";
+    let top = (parseInt(y) / 1.55) + "px";
+
+    const divStyle = {
+      position: 'absolute',
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      ':hover': {
+        backgroundColor: '#ffffff'
+      },
+      ':focus': {
+        backgroundColor: '#fff'
+      },
+      width: width,
+      height: height,
+      zIndex: 1,
+      left: left,
+      top: top
+    };
     const textStyles = {
       display: 'block',
-      position: 'absolute',
-      left: x,
-      top: y
-    }
+      position: 'absolute'
+    };
     const imgStyles = {
-      width: width+'px',
-      height: height+'px',
-    }
+      width: width,
+      height: height,
+    };
 
     return (
-      src?
-        <a href="#" style={textStyles} onClick={(event) => this.handleClick(leadsTo, event)}><img style={imgStyles} src={src} /> <br/> {message}</a> 
-          :
-        <a href="#" style={textStyles} onClick={(event) => this.handleClick(leadsTo, event)}>{message}</a>
+        <div className="overlay" style={divStyle} onClick={(event) => this.handleClick(leadsTo, event)}>
+          <a href="#" style={textStyles}><img style={imgStyles} src={src} /> <br/> {message}</a> 
+        </div>
     );
   }
 }
