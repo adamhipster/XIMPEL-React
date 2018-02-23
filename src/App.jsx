@@ -67,11 +67,25 @@ class SubjectRenderer extends Component {
     //see if media tags are at the top
     for(let j = 0; j < (element.children?element.children.length : 0); j++){
       const child = element.children[j];
-      let childName = capitalize(child["#name"]);
-      childName = childName === "Youtube"? "YouTube" : childName;
-      const childAttributes = child.attributes;
-      const grandChildren = child.children? this.createChildren(child) : null;
-      children.push(React.createElement(eval(childName), {...child.attributes, text: child.text}, grandChildren));
+      let renderNormalHTML = false;
+      switch(child["#name"]){
+        case "p":
+        case "h1":
+        case "img":
+        renderNormalHTML = true;
+      }
+      if(renderNormalHTML === false){
+        let childName = capitalize(child["#name"]);
+        childName = childName === "Youtube"? "YouTube" : childName;
+        const childAttributes = child.attributes;
+        const grandChildren = child.children? this.createChildren(child) : null;
+        children.push(React.createElement(eval(childName), {...child.attributes, text: child.text}, grandChildren));
+      }
+      else {
+        const childAttributes = child.attributes;
+        const grandChildren = child.children? this.createChildren(child) : null;
+        children.push(React.createElement(child["#name"], {...child.attributes}, child.text, grandChildren));
+      }
     }
     return children;
   }
@@ -258,7 +272,7 @@ class MediaType extends Component {
               ...this.state,
               secondsElapsed: this.state.secondsElapsed + 1,
               hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
-            })
+            });
           }, 1000);
           this.setState({
             ...this.state,
@@ -360,6 +374,7 @@ class Video extends MediaType {
 
   handleEnd(event){
     if(this.props.repeat === "true"){
+      pubSub.publish('video repeat');
       this.video.load();
       this.video.play();
       return;
@@ -622,8 +637,40 @@ class Overlay extends Component {
 
   constructor(props) {
     super(props);
+
+    this.state = ({
+      secondsElapsed: 0,
+      startTime: parseFloat(this.props.startTime) || 0,
+      duration: parseFloat(this.props.duration) || 0
+    });
+
+    const resetState = (topic, data) => {
+      this.setState({
+        ...this.state,
+        secondsElapsed: 0,
+        startTime: parseFloat(this.props.startTime) || 0,
+        duration: parseFloat(this.props.duration) || 0
+      })
+    };
+
+    pubSub.subscribe('leadsToUpdate', resetState.bind(this)); //allows for easy timer reset
+    pubSub.subscribe('video repeat', resetState.bind(this));
+
     this.handleClick = this.handleClick.bind(this);
     this.handleScore = this.handleScore.bind(this);
+  }
+
+  componentDidMount(){
+    this.intervalId = setInterval(() => {
+      this.setState({
+        ...this.state,
+        secondsElapsed: this.state.secondsElapsed + 1,
+      });
+    }, 1000);
+  }
+
+  componentWillUnmount(){
+    clearInterval(this.intervalId);
   }
 
   handleClick(leadsTo, event){
@@ -655,9 +702,11 @@ class Overlay extends Component {
   }
 
   render() { 
+    console.log(this.state);
     const {message, leadsTo, src, width, height, x, y} = this.props;
     let left = (parseInt(x) / 1.55) + "px";
     let top = (parseInt(y) / 1.50) + "px";
+    const hasTheRightTime = this.state.secondsElapsed >= this.state.startTime && (this.state.secondsElapsed <= (this.state.startTime + this.state.duration) || this.state.duration === 0);
 
     const divStyle = {
       position: 'absolute',
@@ -684,7 +733,7 @@ class Overlay extends Component {
     };
 
     return (
-        <div className="overlay" style={divStyle} onClick={(event) => this.handleClick(leadsTo, event)}>
+        hasTheRightTime && <div className="overlay" style={divStyle} onClick={(event) => this.handleClick(leadsTo, event)}>
           <a href="#" style={textStyles}><img style={imgStyles} src={src} /> <br/> {message}</a> 
         </div>
     );
