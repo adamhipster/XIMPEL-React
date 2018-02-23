@@ -45,6 +45,8 @@ Object.compare = (object, base) => {
 class SubjectRenderer extends Component {
   constructor(props) {
     super(props);
+    console.log('playlist');
+    console.log(playlist);
     this.state = {
       currentSubjectNo: 0,
       currentMediaItem: 0,
@@ -145,7 +147,7 @@ class SubjectRenderer extends Component {
       }
     }
 
-    PubSub.subscribe('overlayUpdate', handleOverlay.bind(this));
+    PubSub.subscribe('leadsToUpdate', handleOverlay.bind(this));
     PubSub.subscribe('mediaStop', handleMediaStop.bind(this));
   }
 
@@ -173,8 +175,6 @@ class SubjectRenderer extends Component {
       // console.log('propsCompare');
       // console.log(this.state.mediaItems, mediaItems);
       // console.log( propsCompare(this.state.mediaItems, mediaItems) === false);
-      console.log('media children');
-      console.log(children);
 
       //ik denk dat het hier fout gaat want deze vergelijking gaat volgens mij fout
       if(propsCompare(this.state.mediaItems, mediaItems) === false){
@@ -345,15 +345,31 @@ class Video extends MediaType {
   constructor(props) {
     super(props);
     this.state = {
+      ...this.state,
       key: 0
     }
-    const changeKey = () => {
+    this.handleEnd = this.handleEnd.bind(this);
+    const changeKey = (topic, src) => {
       this.setState({
         key: this.state.key + 1
       });
     }
   
     pubSub.subscribe('change key for video', changeKey.bind(this));
+  }
+
+  handleEnd(event){
+    if(this.props.repeat === "true"){
+      this.video.load();
+      this.video.play();
+      return;
+    }
+    for (let i = 0; i < playlist.ximpel.playlist[0].children.length; i++) {
+      if(playlist.ximpel.playlist[0].children[i].attributes.id === this.props.leadsTo){
+        PubSub.publish('leadsToUpdate', i);
+        break;
+      }
+    }
   }
 
   render(){
@@ -365,12 +381,11 @@ class Video extends MediaType {
       top: y,
       width: width,
       height: height,
-    }
-    // console.log('video');
-    // console.log(this);
+    };
+
     return(
        this.hasToRender() && <div>
-        <video key={this.state.key} preload="none" autoPlay style={styles} >
+        <video ref={node => this.video = node} key={this.state.key} preload="none" autoPlay style={styles} onEnded={e => this.handleEnd(e) }>
           {
             this.props.children.map( element => 
               element.type.toString() === Overlay.toString()? null : element)
@@ -392,6 +407,7 @@ class Source extends MediaType {
 
   shouldComponentUpdate(nextProps, nextState){
     if(this.props.file !== nextProps.file){
+      // const videoPathName = nextProps.file + '.' + nextProps.extensions;
       pubSub.publish('change key for video');
     }
     return true;
@@ -399,8 +415,6 @@ class Source extends MediaType {
 
   render(){
     const {file, extensions, types} = this.props;
-    // console.log('source');
-    // console.log(this);
 
     return(
       this.hasToRender() && <source src={file+'.'+extensions} type={types} />
@@ -618,7 +632,8 @@ class Overlay extends Component {
     }
     for (let i = 0; i < playlist.ximpel.playlist[0].children.length; i++) {
       if(playlist.ximpel.playlist[0].children[i].attributes.id === leadsTo){
-        PubSub.publish('overlayUpdate', i);
+        console.log(this.props.leadsTo);
+        PubSub.publish('leadsToUpdate', i);
         break;
       }
     }
@@ -642,7 +657,7 @@ class Overlay extends Component {
   render() { 
     const {message, leadsTo, src, width, height, x, y} = this.props;
     let left = (parseInt(x) / 1.55) + "px";
-    let top = (parseInt(y) / 1.55) + "px";
+    let top = (parseInt(y) / 1.50) + "px";
 
     const divStyle = {
       position: 'absolute',

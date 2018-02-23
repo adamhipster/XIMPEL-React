@@ -14,19 +14,18 @@
                 <video repeat="true">
                     <source extensions="mp4" file="videos/MenuDeBonteHen"/>
                     <overlay height="100px" leadsTo="WalkToHetJongeSchaap" startTime="1" width="350px" x="200px" y="970px"/>
-                    <!-- leadsTo="QuizBonteHenIntro" -->
-                    <overlay height="100px" leadsTo="QuizMenuDeBonteHen" startTime="1" width="350px" x="800px" y="970px"/>
+                    <overlay height="100px" leadsTo="QuizBonteHenIntro" startTime="1" width="350px" x="800px" y="970px"/>
                     <overlay height="100px" leadsTo="TourOfMolenDeBonteHen" startTime="1" width="350px" x="1470px" y="970px"/>
                 </video>
             </media>
         </subject>
-        <!-- <subject id="QuizBonteHenIntro">
+        <subject id="QuizBonteHenIntro">
             <media>
                 <video leadsTo="QuizMenuDeBonteHen">
                     <source extensions="mp4" file="videos/QuizDeBonteHenIntro"/>
                 </video>
             </media>
-        </subject> -->
+        </subject>
         <subject id="QuizMenuDeBonteHen">
             <!-- <description>Quiz: Windmill De Bonte Hen</description> -->
             <media>
@@ -76,7 +75,5 @@
                 </video>
             </media>
         </subject>
-
     </playlist>
-
 </ximpel>
