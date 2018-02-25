@@ -2,8 +2,8 @@
 <playlist>
     <subject id="lesson1">
       <media>
-        <message message="PWD Tutorial" duration="5" />
-        <video x="0px" y="200px" width="400px" height="400px" duration="10">
+        <message message="PWD Tutorial" duration="2" startTime="4"/>
+        <video x="0px" y="200px" width="400px" height="400px" duration="8">
             <source file="./pwd" extensions="mp4" types="video/mp4" />
             <overlay score="+200" scoreId="yay" leadsTo="lesson2" width="600px" height="75px" x="500px" y="500px" message="next lesson"/>
         </video>
@@ -15,7 +15,7 @@
       <media>
         <message message="test" />
       </media>
-      <youtube duration="10" id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
+      <youtube startTime="5" duration="10" id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
     </subject>
 
      <subject id="lesson2">

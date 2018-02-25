@@ -1,13 +1,24 @@
 import React, { Component } from 'react';
 import './App.css';
 // import playlist from './playlist.xml';
-import playlist from './playlist_zaanse_schans.xml';
+import playlist from './playlist.xml';
 import pubSub from './pubsub.js'
 import YouTubePlayer from './YouTube.js';
 import io from './socket.io.js';
 import JSON from 'circular-json';
 import _ from 'lodash';
-import Radium from 'radium' //now it is possible to do inline CSS pseudo-classes
+import Radium from 'radium' //now it is possible to be able to inline CSS pseudo-classes
+
+//ISSUES
+//The state --> render can be an issue when you want more control over DOM nodes
+//Specifically for lifecycle methods: I do not always know which lifecycle methods are triggered when
+// or which if-statements I need to put around it in order to get the exact case that I'd like
+
+//PROS
+//Components map really well to tags in the XIMPEL playlist
+//There is no jQuery stuff, it is all about data and HTML
+
+// to do: create own children, only when you need them
 
 function capitalize(element){
   return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
@@ -29,8 +40,8 @@ function propsCompare(component1, component2){
     return false;
   }
   for(let i = 0; i < component1.length; i++){
-    const partialPropsComponent1 = _.omit(component1[i].props, 'children');
-    const partialPropsComponent2 = _.omit(component2[i].props, 'children');
+    const partialPropsComponent1 = _.omit(component1[i].props, ['children', 'subjectRendererState']);
+    const partialPropsComponent2 = _.omit(component2[i].props, ['children', 'subjectRendererState']);
     if(Object.compare(partialPropsComponent1, partialPropsComponent2) === false){
       return false;
     }
@@ -45,73 +56,42 @@ Object.compare = (object, base) => {
 class SubjectRenderer extends Component {
   constructor(props) {
     super(props);
-    console.log('playlist');
-    console.log(playlist);
+    this.createChildrenOfSubject = this.createChildrenOfSubject.bind(this);
+    this.handleMediaCollectionClick = this.handleMediaCollectionClick.bind(this);
+    this.getMediaItems = this.getMediaItems.bind(this);
     this.state = {
       currentSubjectNo: 0,
-      currentMediaItem: 0,
-      children: [],
+      currentMediaCollection: 0,
       stopCounter: 0,
       mediaItems: [],
+      childrenOfSubject: []
     }
-    this.createChildren = this.createChildren.bind(this);
-    this.selectSubtree = this.selectSubtree.bind(this);
-    this.handleMediaItemClick = this.handleMediaItemClick.bind(this);
-    this.determineMediaItems = this.determineMediaItems.bind(this);
-    this.getMediaItems = this.getMediaItems.bind(this);
+    this.state = {
+      ...this.state,
+      childrenOfSubject: this.createChildrenOfSubject(playlist.ximpel.playlist[0].children[this.state.currentSubjectNo], this.state), 
+    }
   }
 
-  createChildren(element){ //assumes parallel play by default
+  createChildrenOfSubject(subject, subjectRendererState){ //assumes parallel play by default
     let children = [];
-    let hasMedia = false;
-    //see if media tags are at the top
-    for(let j = 0; j < (element.children?element.children.length : 0); j++){
-      const child = element.children[j];
-      let renderNormalHTML = false;
-      switch(child["#name"]){
-        case "p":
-        case "h1":
-        case "img":
-        renderNormalHTML = true;
-      }
-      if(renderNormalHTML === false){
-        let childName = capitalize(child["#name"]);
-        childName = childName === "Youtube"? "YouTube" : childName;
-        const childAttributes = child.attributes;
-        const grandChildren = child.children? this.createChildren(child) : null;
-        children.push(React.createElement(eval(childName), {...child.attributes, text: child.text}, grandChildren));
-      }
-      else {
-        const childAttributes = child.attributes;
-        const grandChildren = child.children? this.createChildren(child) : null;
-        children.push(React.createElement(child["#name"], {...child.attributes}, child.text, grandChildren));
+
+    for(let j = 0; j < (subject.children?subject.children.length : 0); j++){
+      const child = subject.children[j]; //could be a media tag or a media item
+      let childName = capitalize(child["#name"]);
+      const childAttributes = child.attributes;
+      const subjectHasMediaChild = child["#name"] === "media" && subject.children[this.state.currentMediaCollection] === child;
+      const isNotMediaChild = child["#name"] !== "media";
+
+      //if subjectHasMediaChild === true, then sequence play ensues for that media collection by excluding the other media collections
+      //otherwise nothing is a media collection, thus render everything, 
+      //also siblings of media collections that are not media collections should be rendered
+      if(subjectHasMediaChild || isNotMediaChild) {
+        const grandChildren = child.children? this.createChildrenOfSubject(child, subjectRendererState) : null;
+        children.push(React.createElement(eval(childName), {...child.attributes, text: child.text, subjectRendererState: subjectRendererState}, grandChildren));
       }
     }
+
     return children;
-  }
-
-  selectSubtree(children){
-    const selectedElements = [];
-    const currentMediaItem = children[this.state.currentMediaItem];
-    selectedElements.push(currentMediaItem);
-    //also include randoms
-    for(let i = 0; i < children.length; i++){
-      if(children[i].type.toString() !== Media.toString()){
-        selectedElements.push(children[i]);
-      }
-    }
-    return selectedElements;
-  }
-
-  determineMediaItems(element){
-    let hasMediaItems = false;
-    for(let j = 0; j < (element.children?element.children.length : 0); j++){
-      const child = element.children[j];
-      if(child["#name"] === "media" && element.children[this.state.currentMediaItem] === child){
-        hasMediaItems = true;
-      }
-    }
-    return hasMediaItems;
   }
 
   getMediaItems(children){
@@ -131,10 +111,17 @@ class SubjectRenderer extends Component {
 
   //all pub-subs are here
   componentWillMount(){
-    const handleOverlay = (topic, subjectNo) => {
+
+    const switchSubject = (topic, subjectNo) => {
       this.setState({
         ...this.state,
-        currentSubjectNo: subjectNo
+        currentSubjectNo: subjectNo,
+      }, () => {
+        const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
+        this.setState({
+          ...this.state,
+          childrenOfSubject: this.createChildrenOfSubject(subjectElement, this.state)
+        })
       });
     };
 
@@ -151,9 +138,15 @@ class SubjectRenderer extends Component {
             //to do: needs to improve to actual media items
             if(this.state.stopCounter === children.length){
               this.setState({
-                ...this.sate,
-                currentMediaItem: (this.state.currentMediaItem + 1),
+                ...this.state,
+                currentMediaCollection: (this.state.currentMediaCollection + 1),
                 stopCounter: 0
+              }, () => {
+                const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
+                this.setState({
+                  ...this.state,
+                  childrenOfSubject: this.createChildrenOfSubject(subjectElement, this.state)
+                })
               });
             }
           })
@@ -161,60 +154,53 @@ class SubjectRenderer extends Component {
       }
     }
 
-    PubSub.subscribe('leadsToUpdate', handleOverlay.bind(this));
+    PubSub.subscribe('leadsToUpdate', switchSubject.bind(this));
     PubSub.subscribe('mediaStop', handleMediaStop.bind(this));
   }
 
-  
 
-  handleMediaItemClick(e){
+
+  handleMediaCollectionClick(e){
     this.setState({
       ...this.state,
-      currentMediaItem: (this.state.currentMediaItem + 1)
+      currentMediaCollection: (this.state.currentMediaCollection + 1)
+    }, () => {
+      const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
+      this.setState({
+        ...this.state,
+        childrenOfSubject: this.createChildrenOfSubject(subjectElement, this.state)
+      })
     });
   }
 
   render(){
     const subjectNo = this.state.currentSubjectNo;
-    const element = playlist.ximpel.playlist[0].children[subjectNo];
-    const elementName = "Subject";
-    let children = this.createChildren(element); //play everything in the subject
-    let hasMediaItems = this.determineMediaItems(element);
-    let mediaItems = [];
-    if(hasMediaItems){
-      children = this.selectSubtree(children);
-      mediaItems = this.getMediaItems(children);
-      // console.log('mediaItems render');
-      // console.log(this.state.currentMediaItem);
-      // console.log('propsCompare');
-      // console.log(this.state.mediaItems, mediaItems);
-      // console.log( propsCompare(this.state.mediaItems, mediaItems) === false);
+    const subjectElement = playlist.ximpel.playlist[0].children[subjectNo];
+    const mediaItems = this.getMediaItems(this.state.childrenOfSubject);
 
-      //ik denk dat het hier fout gaat want deze vergelijking gaat volgens mij fout
-      if(propsCompare(this.state.mediaItems, mediaItems) === false){
-        this.setState({
-          ...this.state,
-          mediaItems: mediaItems
-        });
-        PubSub.publish('new media items', this.state.mediaItems);
-      }
-    }
-
-    //an actual comparison goes wrong, while I know this is bad practice knowing which mediaItems you
-    //need to play is really handy.
-    if(JSON.stringify(Object.keys(this.state.children)) !== JSON.stringify(Object.keys(children))){
+    if(propsCompare(this.state.mediaItems, mediaItems) === false){
       this.setState({
         ...this.state,
-        children: children
+        mediaItems: mediaItems
+      }, () => {
+        console.log('setState mediaItems', this.state.mediaItems);
+        const subjectChildren = this.createChildrenOfSubject(subjectElement, this.state);
+        this.setState({
+          ...this.state,
+          childrenOfSubject: subjectChildren
+        }, () => {
+          console.log('setState mediaItems -- setState childrenOfSubject', this.state.childrenOfSubject);
+        })
       });
     }
+    
 
     return (
       <div className="playlist">
         {
           <div className="subjectRenderer">
-            { React.createElement(eval(elementName), {...element.attributes, text: element.text}, children) }
-            <a href="#" style={{position: 'absolute', right: '50px'}} onClick={(e) => this.handleMediaItemClick(e)}>>></a>
+            { React.createElement(eval("Subject"), {...subjectElement.attributes, text: subjectElement.text}, this.state.childrenOfSubject) }
+            <a href="#" style={{position: 'absolute', right: '50px'}} onClick={(e) => this.handleMediaCollectionClick(e)}>next media collection</a>
           </div>
         }
       </div>
@@ -255,99 +241,88 @@ class Media extends Component {
 }
 
 class MediaType extends Component {
+  //keeps time for all specific media types
+  //Checks if it needs to render
+
   constructor(props){
     super(props);
     this.state = {
-      duration: props.duration || 0,
-      secondsElapsed: 0,
+      duration: parseFloat(props.duration) || 0,
+      secondsElapsed: 1,
       hasToRender: true,
-      playStatus: "MEDIA_PLAY"
+      mediaStatus: "MEDIA_IDLE", //MEDIA_STOP & MEDIA_PLAY & MEDIA_IDLE (is not played yet)
+      startTime: parseFloat(props.startTime) || 0
     }
     this.hasToRender = this.hasToRender.bind(this);
-    const newMediaItem = (topic, mediaItems) => {
-      for(let i = 0; i < mediaItems.length; i++){
-        if(mediaItems[i].type.toString() === this._reactInternalFiber.type.toString()){
-          this.intervalId = setInterval(() => {
-            this.setState({
-              ...this.state,
-              secondsElapsed: this.state.secondsElapsed + 1,
-              hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
-            });
-          }, 1000);
-          this.setState({
-            ...this.state,
-            playStatus: "MEDIA_PLAY",
-            duration: this.props.duration || 0,
-            // intervalId: intervalId
-          });
-        }
-      }
-    };
-    PubSub.subscribe('new media items', newMediaItem.bind(this)); //communicates with SubjectRenderer
-  }
+    this.hasTheRightTime = this.hasTheRightTime.bind(this);
 
-  componentWillMount(){
-    clearInterval(this.interval);
-    this.setState({
-      duration: 1,
-      secondsElapsed: 0,
-      hasToRender: true,
-      playStatus: "MEDIA_PLAY",
-      // intervalId: 0
-    });
-  }
-
-  componentDidMount() {
     this.intervalId = setInterval(() => {
+      const duration = parseFloat(this.state.duration);
       this.setState({
         ...this.state,
         secondsElapsed: this.state.secondsElapsed + 1,
-        hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
+        hasToRender: this.hasTheRightTime(),
+      }, () => { //mediaStatus needs to be set after, because hasToRender has to evaluate to false
+        if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
+          this.setState({
+            ...this.state,
+            mediaStatus: "MEDIA_PLAY"
+          })
+        }
       })
     }, 1000);
-    this.setState({
-      ...this.state,
-      duration: this.props.duration || 0,
-      // intervalId: intervalId
-    });
+  }
+
+  componentWillReceiveProps(nextProps){
+    if(propsCompare(this.props, nextProps) === false || this.state.mediaStatus === "MEDIA_STOP"){
+      //reset the component, since there is a new media or subject render because the props are not equal 
+      // or because the media is stopped in a previous subject
+
+      clearInterval(this.intervalId); //clear the interval of the previous media component
+      const mediaItems = this.props.subjectRendererState.mediaItems
+      for(let i = 0; i < mediaItems.length; i++){
+        if(mediaItems[i].type.toString() === this._reactInternalFiber.type.toString()){
+          this.setState({
+            ...this.state,
+            mediaStatus: "MEDIA_IDLE",
+            duration: parseFloat(this.props.duration) || 0,
+            secondsElapsed: 0
+          }, () => {
+            this.intervalId = setInterval(() => {
+              const duration = parseFloat(this.state.duration);
+              this.setState({
+                ...this.state,
+                secondsElapsed: this.state.secondsElapsed + 1,
+                hasToRender: this.hasTheRightTime()
+              });
+            }, 1000);
+          });
+        }
+      }
+    }
   }
 
   componentDidUpdate(){
-    if(this.state.secondsElapsed >= parseInt(this.state.duration || this.state.duration === 0) && this.state.playStatus === "MEDIA_PLAY"){
+    if(this.state.hasToRender === false && this.state.mediaStatus === "MEDIA_PLAY"){
+      //component is finished playing
       clearInterval(this.intervalId);
       this.setState({
         ...this.state,
         secondsElapsed: 0,
-        hasToRender: false
-      })
-      // this.intervalId = setInterval(() => {
-      //   this.setState({
-      //     ...this.state,
-      //     secondsElapsed: this.state.secondsElapsed + 1,
-      //     hasToRender: (parseInt(this.state.secondsElapsed) <= this.state.duration || this.state.duration === 0)
-      //   })
-      // }, 1000);
+        hasToRender: false,
+        mediaStatus: "MEDIA_STOP"
+      });
+      PubSub.publish('mediaStop', this);
     }
+  }
+
+  hasTheRightTime(){
+    const hasTheRightTime = this.state.secondsElapsed >= this.state.startTime && (this.state.secondsElapsed <= (this.state.startTime + this.state.duration) || this.state.duration === 0);
+    return hasTheRightTime;
   }
 
   hasToRender(){
-    if(this.state.hasToRender === false && this.state.playStatus !== "MEDIA_STOP"){
-      PubSub.publish('mediaStop', this);
-      this.setState({
-        ...this.state,
-        playStatus: "MEDIA_STOP"
-      })
-    }
     return this.state.hasToRender;
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.intervalId);
-    this.setState({
-      ...this.state,
-      secondsElapsed: 0,
-      hasToRender: false
-    })
   }
 
   render(){
@@ -422,7 +397,6 @@ class Source extends MediaType {
 
   shouldComponentUpdate(nextProps, nextState){
     if(this.props.file !== nextProps.file){
-      // const videoPathName = nextProps.file + '.' + nextProps.extensions;
       pubSub.publish('change key for video');
     }
     return true;
@@ -494,7 +468,7 @@ class Image extends MediaType {
   }
 }
 
-class YouTube extends MediaType {
+class Youtube extends MediaType {
   constructor(props){
     super(props);
   }
@@ -599,6 +573,19 @@ class Terminal extends MediaType {
   }
 }
 
+class P extends MediaType {
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    console.log(this);
+    return(
+      this.hasToRender() && <p> {this.props.children} {this.props.text}  </p>
+    );
+  }
+}
+
 class Yolo extends MediaType {
   constructor(props) {
     super(props);
@@ -679,7 +666,6 @@ class Overlay extends Component {
     }
     for (let i = 0; i < playlist.ximpel.playlist[0].children.length; i++) {
       if(playlist.ximpel.playlist[0].children[i].attributes.id === leadsTo){
-        console.log(this.props.leadsTo);
         PubSub.publish('leadsToUpdate', i);
         break;
       }
@@ -702,7 +688,6 @@ class Overlay extends Component {
   }
 
   render() { 
-    console.log(this.state);
     const {message, leadsTo, src, width, height, x, y} = this.props;
     let left = (parseInt(x) / 1.55) + "px";
     let top = (parseInt(y) / 1.50) + "px";
@@ -743,6 +728,7 @@ class Overlay extends Component {
 class App extends Component {
   constructor(props) {
     super(props);
+    console.log('playlist');
     console.log(this.playlist);
   }
 
