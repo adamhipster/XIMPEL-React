@@ -13,6 +13,7 @@ import Radium from 'radium' //now it is possible to be able to inline CSS pseudo
 //The state --> render can be an issue when you want more control over DOM nodes
 //Specifically for lifecycle methods: I do not always know which lifecycle methods are triggered when
 // or which if-statements I need to put around it in order to get the exact case that I'd like
+// The states of classes need to be reset
 
 //PROS
 //Components map really well to tags in the XIMPEL playlist
@@ -136,6 +137,7 @@ class SubjectRenderer extends Component {
             stopCounter: this.state.stopCounter + 1
           }, () => {
             //to do: needs to improve to actual media items
+            console.log('mediaStop', this.state.stopCounter, children.length);
             if(this.state.stopCounter === children.length){
               this.setState({
                 ...this.state,
@@ -262,7 +264,9 @@ class MediaType extends Component {
         ...this.state,
         secondsElapsed: this.state.secondsElapsed + 1,
         hasToRender: this.hasTheRightTime(),
-      }, () => { //mediaStatus needs to be set after, because hasToRender has to evaluate to false
+      }, () => { 
+        //mediaStatus needs to be set after, because hasToRender has to evaluate to false
+        //this will make sure that the 'mediaStop' topic is published
         if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
           this.setState({
             ...this.state,
@@ -274,6 +278,8 @@ class MediaType extends Component {
   }
 
   componentWillReceiveProps(nextProps){
+    //this method is basically more or less the same as the constructor, since it is needed every time
+    // a new subject loads (I think...) or new media item loads (I'm sure of that)
     if(propsCompare(this.props, nextProps) === false || this.state.mediaStatus === "MEDIA_STOP"){
       //reset the component, since there is a new media or subject render because the props are not equal 
       // or because the media is stopped in a previous subject
@@ -294,6 +300,15 @@ class MediaType extends Component {
                 ...this.state,
                 secondsElapsed: this.state.secondsElapsed + 1,
                 hasToRender: this.hasTheRightTime()
+              }, () => {
+                //mediaStatus needs to be set after, because hasToRender has to evaluate to false
+                //this will make sure that the 'mediaStop' topic is published
+                if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
+                  this.setState({
+                    ...this.state,
+                    mediaStatus: "MEDIA_PLAY"
+                  })
+                }
               });
             }, 1000);
           });
@@ -303,6 +318,7 @@ class MediaType extends Component {
   }
 
   componentDidUpdate(){
+    console.log('componentdidupdate mediatype', this.state.hasToRender, this.state.mediaStatus, this._reactInternalFiber.type.toString().slice(1,20))
     if(this.state.hasToRender === false && this.state.mediaStatus === "MEDIA_PLAY"){
       //component is finished playing
       clearInterval(this.intervalId);
@@ -354,11 +370,23 @@ class Video extends MediaType {
       this.video.play();
       return;
     }
+    
+    //next leadsto
+    let hasLeadsTo = false;
     for (let i = 0; i < playlist.ximpel.playlist[0].children.length; i++) {
       if(playlist.ximpel.playlist[0].children[i].attributes.id === this.props.leadsTo){
         PubSub.publish('leadsToUpdate', i);
+        hasLeadsTo = true;
         break;
       }
+    }
+
+    //if no leadsto then next media item
+    if(hasLeadsTo === false){
+      // PubSub.publish('mediaStop', this);
+      this.setState({
+        hasToRender: false
+      })
     }
   }
 
