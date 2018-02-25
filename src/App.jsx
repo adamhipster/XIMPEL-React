@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 // import playlist from './playlist.xml';
-import playlist from './playlist.xml';
+import playlist from './playlist_zaanse_schans.xml';
 import pubSub from './pubsub.js'
 import YouTubePlayer from './YouTube.js';
 import io from './socket.io.js';
@@ -19,7 +19,18 @@ import Radium from 'radium' //now it is possible to be able to inline CSS pseudo
 //Components map really well to tags in the XIMPEL playlist
 //There is no jQuery stuff, it is all about data and HTML
 
-// to do: create own children, only when you need them
+//ARCHITECTURE
+//The SubjectRenderer renders what is needed via the createChildrenOfSubject method
+//The createChildrenOfSubject method determines whether it should render everything or if it should render something regarding a media type
+//This is monolithic and I am doubting to alter the play style via the React components (e.g. the Media component does something to the creation of the children)
+
+//WHAT I DID
+//I first hacked an implementation of XIMPEL to see if it works
+//Then as a second step I started to do some performance improvement (there were a lot of issues)
+//The third thing to find out is to see if there is a strong architecture that would help the development for XIMPEL
+
+//OTHER ISSUES
+//What is a handy language design for parallel and sequence play? I wouldn't know
 
 function capitalize(element){
   return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);

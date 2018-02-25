@@ -1,0 +1,60 @@
+Different player cases
+
+1. Sequential play with media within a subject -- I wouldn't want this if I also want 2 and 3
+<subject>
+  <media>
+    <video>
+  </media>
+  <media>
+    <image>
+  </media>
+</subject>
+
+2. Images are parallel and videos are played in sequence
+<subject>
+  <media>
+    <!-- images are parallel -->
+    <image>
+    <image>
+
+    <!-- this is in sequence -->
+    <sequence>
+      <video src="1">
+      <video src="2">
+      <video src="3">
+    </sequence>
+  </media>
+</subject>
+
+3. 
+Image
+Image
+Video1 --> Video2 --> yolo                         |--> video3
+                      hey                          |
+                      image1 --> image2 --> image3 |
+<subject>
+  <media>
+    <!-- images are parallel -->
+    <image>
+    <image>
+
+    <!-- this is in sequence -->
+    <sequence>
+      <video src="1">
+      <video src="2">
+      <media>
+        <Text message="yolo">
+        <Text message="hey">
+        <sequence>
+          <Image src="1">
+          <Image src="2">
+          <Image src="3">
+        </sequence>
+      </media>
+      <video src="3">
+    </sequence>
+  </media>
+  <media>
+    <image>
+  </media>
+</subject>
