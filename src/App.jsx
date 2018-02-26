@@ -9,29 +9,6 @@ import JSON from 'circular-json';
 import _ from 'lodash';
 import Radium from 'radium' //now it is possible to be able to inline CSS pseudo-classes
 
-//ISSUES
-//The state --> render can be an issue when you want more control over DOM nodes
-//Specifically for lifecycle methods: I do not always know which lifecycle methods are triggered when
-// or which if-statements I need to put around it in order to get the exact case that I'd like
-// The states of classes need to be reset
-
-//PROS
-//Components map really well to tags in the XIMPEL playlist
-//There is no jQuery stuff, it is all about data and HTML
-
-//ARCHITECTURE
-//The SubjectRenderer renders what is needed via the createChildrenOfSubject method
-//The createChildrenOfSubject method determines whether it should render everything or if it should render something regarding a media type
-//This is monolithic and I am doubting to alter the play style via the React components (e.g. the Media component does something to the creation of the children)
-
-//WHAT I DID
-//I first hacked an implementation of XIMPEL to see if it works
-//Then as a second step I started to do some performance improvement (there were a lot of issues)
-//The third thing to find out is to see if there is a strong architecture that would help the development for XIMPEL
-
-//OTHER ISSUES
-//What is a handy language design for parallel and sequence play? I wouldn't know
-
 function capitalize(element){
   return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
 }
@@ -65,155 +42,43 @@ Object.compare = (object, base) => {
   return _.isEqual(difference(object, base), {})
 }
 
+
+function createChildren(parent, parentState){ //assumes parallel play by default
+  let children = [];
+  for(let j = 0; j < (parent.children?parent.children.length : 0); j++){
+    const child = parent.children[j]; //could be a media tag or a media item
+    let childName = capitalize(child["#name"]);
+    const childAttributes = child.attributes;
+    children.push(React.createElement(eval(childName), {...child.attributes, text: child.text, parentState: parentState}, null));
+  }
+
+  return children;
+}
+
+//picks a subject and renders it
 class SubjectRenderer extends Component {
   constructor(props) {
     super(props);
-    this.createChildrenOfSubject = this.createChildrenOfSubject.bind(this);
-    this.handleMediaCollectionClick = this.handleMediaCollectionClick.bind(this);
-    this.getMediaItems = this.getMediaItems.bind(this);
     this.state = {
       currentSubjectNo: 0,
-      currentMediaCollection: 0,
-      stopCounter: 0,
-      mediaItems: [],
-      childrenOfSubject: []
-    }
-    this.state = {
-      ...this.state,
-      childrenOfSubject: this.createChildrenOfSubject(playlist.ximpel.playlist[0].children[this.state.currentSubjectNo], this.state), 
+      subjectElement: playlist.ximpel.playlist[0].children[0] //subject
     }
   }
 
-  createChildrenOfSubject(subject, subjectRendererState){ //assumes parallel play by default
-    let children = [];
 
-    for(let j = 0; j < (subject.children?subject.children.length : 0); j++){
-      const child = subject.children[j]; //could be a media tag or a media item
-      let childName = capitalize(child["#name"]);
-      const childAttributes = child.attributes;
-      const subjectHasMediaChild = child["#name"] === "media" && subject.children[this.state.currentMediaCollection] === child;
-      const isNotMediaChild = child["#name"] !== "media";
-
-      //if subjectHasMediaChild === true, then sequence play ensues for that media collection by excluding the other media collections
-      //otherwise nothing is a media collection, thus render everything, 
-      //also siblings of media collections that are not media collections should be rendered
-      if(subjectHasMediaChild || isNotMediaChild) {
-        const grandChildren = child.children? this.createChildrenOfSubject(child, subjectRendererState) : null;
-        children.push(React.createElement(eval(childName), {...child.attributes, text: child.text, subjectRendererState: subjectRendererState}, grandChildren));
-      }
-    }
-
-    return children;
-  }
-
-  getMediaItems(children){
-    const mediaItems = [];
-    for(let i = 0; i < children.length; i++){
-      if(children[i].type.toString() !== Media.toString()){
-        mediaItems.push(children[i]);
-      }
-      else{
-        for(let j = 0; j < children[i].props.children.length; j++){
-          mediaItems.push(children[i].props.children[j]);
-        }
-      }
-    }
-    return mediaItems;
-  }
-
-  //all pub-subs are here
-  componentWillMount(){
-
-    const switchSubject = (topic, subjectNo) => {
-      this.setState({
-        ...this.state,
-        currentSubjectNo: subjectNo,
-      }, () => {
-        const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
-        this.setState({
-          ...this.state,
-          childrenOfSubject: this.createChildrenOfSubject(subjectElement, this.state)
-        })
-      });
-    };
-
-    const handleMediaStop = (topic, mediaElement) => {
-      const children = this.state.mediaItems;
-
-      for (let i = 0; i < children.length; i++) {
-        const element = children[i];
-        if(element.type.toString() === mediaElement._reactInternalFiber.type.toString()){
-          this.setState({
-            ...this.state,
-            stopCounter: this.state.stopCounter + 1
-          }, () => {
-            //to do: needs to improve to actual media items
-            console.log('mediaStop', this.state.stopCounter, children.length);
-            if(this.state.stopCounter === children.length){
-              this.setState({
-                ...this.state,
-                currentMediaCollection: (this.state.currentMediaCollection + 1),
-                stopCounter: 0
-              }, () => {
-                const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
-                this.setState({
-                  ...this.state,
-                  childrenOfSubject: this.createChildrenOfSubject(subjectElement, this.state)
-                })
-              });
-            }
-          })
-        } 
-      }
-    }
-
-    PubSub.subscribe('leadsToUpdate', switchSubject.bind(this));
-    PubSub.subscribe('mediaStop', handleMediaStop.bind(this));
-  }
-
-
-
-  handleMediaCollectionClick(e){
-    this.setState({
-      ...this.state,
-      currentMediaCollection: (this.state.currentMediaCollection + 1)
-    }, () => {
-      const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
-      this.setState({
-        ...this.state,
-        childrenOfSubject: this.createChildrenOfSubject(subjectElement, this.state)
-      })
-    });
-  }
 
   render(){
-    const subjectNo = this.state.currentSubjectNo;
-    const subjectElement = playlist.ximpel.playlist[0].children[subjectNo];
-    const mediaItems = this.getMediaItems(this.state.childrenOfSubject);
-
-    if(propsCompare(this.state.mediaItems, mediaItems) === false){
-      this.setState({
-        ...this.state,
-        mediaItems: mediaItems
-      }, () => {
-        console.log('setState mediaItems', this.state.mediaItems);
-        const subjectChildren = this.createChildrenOfSubject(subjectElement, this.state);
-        this.setState({
-          ...this.state,
-          childrenOfSubject: subjectChildren
-        }, () => {
-          console.log('setState mediaItems -- setState childrenOfSubject', this.state.childrenOfSubject);
-        })
-      });
-    }
-    
-
+    const subjectElement = this.state.subjectElement;
+    const children = createChildren(this.state.subjectElement, this.state);
     return (
       <div className="playlist">
         {
           <div className="subjectRenderer">
-            { React.createElement(eval("Subject"), {...subjectElement.attributes, text: subjectElement.text}, this.state.childrenOfSubject) }
-            <a href="#" style={{position: 'absolute', right: '50px'}} onClick={(e) => this.handleMediaCollectionClick(e)}>next media collection</a>
+            { 
+              React.createElement(eval("Subject"), 
+                {...subjectElement.attributes, text: subjectElement.text}, 
+                children)
+            }
           </div>
         }
       </div>
@@ -221,35 +86,84 @@ class SubjectRenderer extends Component {
   }
 }
 
-
+//looks within the subject for media or sequence tags
 class Subject extends Component {
   constructor(props) {
     super(props);
+    this.state = {
+      currentChildNo: 0,
+      childElement: playlist.ximpel.playlist[0].children[0].children[0] //media or sequence
+    }
   }
 
   render(){
-    const {id} = this.props;
-
+    const childElement = this.state.childElement;
+    const children = createChildren(this.state.childElement, this.state);
     return(
-      <div className="subject" id={id}>
-        {this.props.children}
+      <div className="subject">
+          {
+          this.props.children.map( element => { 
+            if(element.type.toString() === Media.toString()){
+              return React.createElement(element.type, {...childElement.attributes, text: childElement.text}, children) 
+            }
+            else if(element.type.toString() === Sequence.toString()){
+              return React.createElement(element.type, {...childElement.attributes, text: childElement.text}, children) 
+            }
+          })
+        }
+        Subject
       </div>
     );
   }
 }
 
+//looks within the media tag for media items
 class Media extends Component {
   constructor(props) {
     super(props);
+    this.state = {      
+    }
   }
 
   render(){
     
     return(
       <div className="media">
-        {this.props.children}
+        {
+          this.props.children.map( (element, i) => { 
+            const childElement = playlist.ximpel.playlist[0].children[0].children[0].children[i] //cannot be media, can be sequence or a media type
+            const children = createChildren(childElement, this.state);
+            console.log(i)
+            if(element.type.toString() === Sequence.toString()){
+              return React.createElement(element.type, {...childElement.attributes, text: childElement.text}, children) 
+            }
+            else if(element.type.toString() === Video.toString()){
+              console.log('video', i, element);
+              return React.createElement(element.type, {...childElement.attributes, text: childElement.text}, children) 
+            }
+            else {
+              console.log('Warning the following element is detected: ', element);
+              return null;
+            }
+          })
+        }
+        Media
       </div>
     );
+  }
+}
+
+class Sequence extends Component {
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return(
+      <div>
+        Sequence
+      </div>
+    )
   }
 }
 
@@ -411,9 +325,10 @@ class Video extends MediaType {
       width: width,
       height: height,
     };
-
+    console.log('video render');
+    console.log(this);
     return(
-       this.hasToRender() && <div>
+       <div>
         <video ref={node => this.video = node} key={this.state.key} preload="none" autoPlay style={styles} onEnded={e => this.handleEnd(e) }>
           {
             this.props.children.map( element => 
@@ -424,6 +339,7 @@ class Video extends MediaType {
             this.props.children.map( element => 
               element.type.toString() === Overlay.toString()? element : null)
           }
+          Video
       </div>
     );
   }
@@ -767,8 +683,6 @@ class Overlay extends Component {
 class App extends Component {
   constructor(props) {
     super(props);
-    console.log('playlist');
-    console.log(this.playlist);
   }
 
   render() {

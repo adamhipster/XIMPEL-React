@@ -2,7 +2,7 @@
     <playlist>
         <subject id="Intro">
             <media>
-                <p> ja dit is een alinea <p> en dit is er nog 1</p> </p>
+                <p> ja dit is een alinea </p>
                 <video leadsTo="MenuDeBonteHen" repeat="true">
                     <source extensions="mp4" file="videos/Intro"/>
                     <overlay duration="14" height="180px" leadsTo="MenuDeBonteHen" startTime="4" width="180px" x="1700px" y="890px"/>

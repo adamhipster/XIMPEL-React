@@ -2,20 +2,26 @@
 <playlist>
     <subject id="lesson1">
       <media>
-        <message message="PWD Tutorial" duration="2" startTime="4"/>
-        <video x="0px" y="200px" width="400px" height="400px">
-            <source file="./pwd" extensions="mp4" types="video/mp4" />
-            <overlay score="+200" scoreId="yay" leadsTo="lesson2" width="600px" height="75px" x="500px" y="500px" message="next lesson"/>
-        </video>
+        <message message="Command-line Tutorial" />
+        <message message="Do your best!" />
+        <sequence>
+          <youtube startTime="2" duration="4" id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
+          <message message="PWD Tutorial" duration="2" startTime="4"/>
+          <media>
+            <message message="ready for PWD?" />
+            <message message="Here is a video!" />
+            <sequence>
+              <video x="0px" y="200px" width="400px" height="400px">
+                <source file="./pwd" extensions="mp4" types="video/mp4" />
+                <overlay score="+200" scoreId="yay" leadsTo="lesson2" width="600px" height="75px" x="500px" y="500px" message="next lesson"/>
+              </video>
+              <message message="The command ls helps you to list the files that are in the current directory you are working in." width="600px" height="800px" x="0px" y="0px" color="#0f0" fontsize='50px' />
+              <Image src="roads.jpg">
+            </sequence>
+          </media>
+          <youtube startTime="2" duration="4" id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
+        </sequence>
       </media>
-      <media>
-        <textblock duration="5" message="Type in pwd and the terminal displays which directory you are working in." width="600px" height="800px" x="0px" y="100px" color="#0f0" fontsize='50px' fontcolor="#fff"/>
-        <terminal x="800px" duration="10"/>    
-      </media>
-      <media>
-        <message message="test" />
-      </media>
-      <youtube startTime="2" duration="4" id="DrgML20YxaA" width="200px" height="400px" x="1100px" y="200px" stopAtSubjectId="lesson3"/>
     </subject>
 
      <subject id="lesson2">
