@@ -8,7 +8,10 @@ import io from './socket.io.js';
 import JSON from 'circular-json';
 import _ from 'lodash';
 import Radium from 'radium' //now it is possible to be able to inline CSS pseudo-classes
-import shortid from 'shortid' //needed to create unique ids for React's DOM diffing algorithm
+
+function capitalize(element){
+  return element.toString().charAt(0).toUpperCase() + element.toString().slice(1);
+}
 
 function difference(object, base) {
 	function changes(object, base) {
@@ -21,11 +24,6 @@ function difference(object, base) {
 	return changes(object, base);
 }
 
-Object.compare = (object, base) => {
-  return _.isEqual(difference(object, base), {})
-}
-
-//Object.compare and difference are helper methods
 function propsCompare(component1, component2){
   if(component1.length !== component2.length){
     return false;
@@ -40,6 +38,43 @@ function propsCompare(component1, component2){
   return true;
 }
 
+Object.compare = (object, base) => {
+  return _.isEqual(difference(object, base), {})
+}
+
+// function createChildren(parent, parentState){ //assumes parallel play by default
+//   let children = [];
+//   for(let j = 0; j < (parent.children?parent.children.length : 0); j++){
+//     const child = parent.children[j]; //could be a media tag or a media item
+//     let childName = capitalize(child["#name"]);
+//     const childAttributes = child.attributes;
+//     children.push(React.createElement(eval(childName), {...child.attributes, text: child.text, parentState: parentState}, null));
+//   }
+
+//   return children;
+// }
+
+//picks a subject and renders it
+// class Node extends Component {
+//   constructor(props) {
+//     super(props);
+//     this.state = {
+//       depth: 0,
+//       currentChildNo: 0,
+//       playlist: playlist
+//     };
+//     this.state.childElement = getChildElement(playlist.ximpel.playlist[0], this.state.depth, this.state.parentState);
+//     this.getChildElement = this.getChildElement.bind(this);
+//   }
+
+//   getChildElement(playlist, depth, parentState){
+//     function traverse(playlist, depth, parentState){
+
+//       return 
+//     }
+//     traverse(playlist, depth, parentState);
+//   }
+// }
 
 //will look for and render a playlist
 class Ximpel extends Component {
@@ -113,6 +148,15 @@ class Subject extends Component {
     }
   }
 
+  // componentWillReceiveProps(nextProps){
+  //   console.log(this.props, nextProps);
+  //   if(this.props.parentState !== nextProps.parentState){
+  //     this.setState({
+  //       parentState: nextProps.parentState
+  //     })
+  //   }
+  // }
+
   render(){
     const playlist = this.props.playlist;
     const element = playlist.children[this.state.currentChildNo];
@@ -143,27 +187,60 @@ class Subject extends Component {
   }
 }
 
+// class SubjectRenderer extends Component { //playlist
+//   constructor(props) {
+//     super(props);
+//     this.state = {
+//       currentSubjectNo: 0,
+//     }
+//   }
+
+//   render(){
+//     const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
+//     console.log('subjectRenderer render', this.state);
+//     return (
+//       <div className="playlist">
+//         {
+//           <div className="subjectRenderer">
+//             { 
+//               React.createElement(eval("Subject"), 
+//                 {...subjectElement.attributes, text: subjectElement.text, parentState: this.state}, null)
+//             }
+//           </div>
+//         }
+//       </div>
+//     );
+//   }
+
+  //  // all pub-subs are here
+  // componentWillMount(){
+  
+  //   const switchSubject = (topic, subjectNo) => {
+  //     console.log('switchSubject', subjectNo);
+  //     this.setState({
+  //       ...this.state,
+  //       currentSubjectNo: subjectNo,
+  //     }, () => {
+  //       const subjectElement = playlist.ximpel.playlist[0].children[this.state.currentSubjectNo];
+  //       this.setState({
+  //         ...this.state,
+  //         subjectElement: subjectElement
+  //       }, () => {
+  //         console.log('this.state');
+  //         console.log(this.state);
+  //       })
+  //     });
+  //   };
+
+  //   PubSub.subscribe('leadsToUpdate', switchSubject.bind(this));
+  // }
+// }
+
 //looks within the media tag for media items
 class Media extends Component {
   constructor(props) {
     super(props);
     console.log(props.playlist);
-    this.state = {
-      //MediaTypes need new keys in order for React to know when they need to be rerendered.
-      //When they are rerendered their state will be reset which allows for the necessary
-      //component reuse.
-      key: shortid.generate()
-    }
-  }
-
-  componentWillReceiveProps(nextProps){
-    console.log('Media componentWillReceiveProps', this.props, nextProps);
-    if(this.props !== nextProps){
-      //Component has new props meaning that either the subject has changed or a sequence has changed
-      this.setState({
-        key: shortid.generate()
-      });
-    }
   }
 
   render(){
@@ -176,228 +253,16 @@ class Media extends Component {
           children.map( (element, i) => {
             switch(element["#name"]){
               case "p":
-                return  <MediaType {...element.attributes} key={this.state.key + i} render={mediatype => (
-                          mediatype.hasToRender() && <p {...element.attributes}>
-                            {element.text}
-                          </p>
-                        )}/>;
+                return  (<p {...element.attributes} key={i}>
+                          {element.text}
+                        </p>);
               case "video":
-                //This trick is called render props, I use it instead of inheritance.
-                //All mediatypes will have the same base state from the MediaType component
-                console.log('rendering Media tag with index: ', i);
-                return  <MediaType {...element.attributes} key={this.state.key + i} render={mediatype => (
-                          <Video {...element.attributes} mediatype={mediatype} text={element.text} playlist={element} />
-                        )}/>;
+                  return <Video {...element.attributes} text={element.text} playlist={element} key={i}/>
               default:
-                  return <p key={this.state.key}>Available tags are: video and p. You wrote {element["#name"]}</p>
+                  return <p key={i}>Available tags are: video, image and p. You wrote {element["#name"]}</p>
             }
           })
         }
-      </div>
-    );
-  }
-}
-
-class Sequence extends Component {
-  constructor(props){
-    super(props);
-    console.log(props.playlist);
-    this.state = {
-      currentChildNo: 0
-    }
-    this.nextMediaItem = this.nextMediaItem.bind(this);
-  }
-
-  //to do: probably not working
-  componentWillReceiveProps(nextProps){
-    console.log('Sequence componentWillReceiveProps', this.props, nextProps);
-    if(this.props !== nextProps){
-      this.setState({
-        currentChildNo: this.state.currentChildNo + 1
-      });
-    }
-  }
-
-  shouldComponentUpdate(nextProps, nextState){
-    console.log('shouldComponentUpdate Sequence ', this.props, nextProps, this.state, nextState);
-    return true;
-  }
-
-  nextMediaItem(){
-    this.setState({
-      currentChildNo: this.state.currentChildNo + 1
-    })
-  }
-
-  render(){
-    const playlist = this.props.playlist;
-    const mediaItem = playlist.children[this.state.currentChildNo];
-    console.log('sequence render', this.props, this.state);
-
-    return(
-      <div className="sequence">
-        {
-            mediaItem["#name"] === "p"?
-            <MediaType nextMediaItem={this.nextMediaItem} {...mediaItem.attributes} render={mediatype => (
-              mediatype.hasToRender() && <p {...mediaItem.attributes}>
-                {mediaItem.text}
-              </p>
-            )}/>
-            :
-            null
-          }
-          {
-            mediaItem["#name"] === "video"?
-            <MediaType nextMediaItem={this.nextMediaItem} {...mediaItem.attributes} render={mediatype => (
-              <Video {...mediaItem.attributes} mediatype={mediatype} text={mediaItem.text} playlist={mediaItem} />
-            )}/>
-            :
-            null
-          }
-          {
-            mediaItem["#name"] !== "p" &&
-            mediaItem["#name"] !== "video"?
-            <p key={this.state.key}>Available tags are: video and p. You wrote {mediaItem["#name"]}</p>
-            :
-            null
-          }
-      </div>
-    )
-  }
-}
-
-//to do: write the state machine schema of media playing, stopping and idling
-class MediaType extends Component {
-  //keeps time for all specific media types
-  //Checks if it needs to render
-
-  constructor(props){
-    super(props);
-    this.state = {
-      duration: parseFloat(props.duration) || 0,
-      secondsElapsed: 1,
-      hasToRender: true,
-      mediaStatus: "MEDIA_IDLE", //MEDIA_STOP & MEDIA_PLAY & MEDIA_IDLE (is not played yet)
-      startTime: parseFloat(props.startTime) || 0
-    }
-    this.hasToRender = this.hasToRender.bind(this);
-    this.hasTheRightTime = this.hasTheRightTime.bind(this);
-
-    this.intervalId = setInterval(() => {
-      const duration = parseFloat(this.state.duration);
-      console.log(this, this.state.duration, this.state.secondsElapsed);
-      this.setState({
-        ...this.state,
-        secondsElapsed: this.state.secondsElapsed + 1,
-        hasToRender: this.hasTheRightTime(),
-      }, () => { 
-        //mediaStatus needs to be set after, because hasToRender has to evaluate to false
-        //this will make sure that the 'mediaStop' topic is published
-        if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
-          this.setState({
-            ...this.state,
-            mediaStatus: "MEDIA_PLAY"
-          })
-        }
-      })
-    }, 1000);
-  }
-
-  componentWillReceiveProps(nextProps){
-    console.log('MediaType componentWillReceiveProps', this.props, nextProps);
-    //this method is basically more or less the same as the constructor, since it is needed every time
-    // a new subject loads (I think...) or new media item loads (I'm sure of that)
-    if(propsCompare(this.props, nextProps) === false || this.state.mediaStatus === "MEDIA_STOP"){
-      //reset the component, since there is a new media or subject render because the props are not equal 
-      // or because the media is stopped in a previous subject
-
-      clearInterval(this.intervalId); //clear the interval of the previous media component
-      const mediaItems = this.props.subjectRendererState.mediaItems
-      for(let i = 0; i < mediaItems.length; i++){
-        if(mediaItems[i].type.toString() === this._reactInternalFiber.type.toString()){
-          this.setState({
-            ...this.state,
-            mediaStatus: "MEDIA_IDLE",
-            duration: parseFloat(this.props.duration) || 0,
-            secondsElapsed: 0
-          }, () => {
-            this.intervalId = setInterval(() => {
-              const duration = parseFloat(this.state.duration);
-              this.setState({
-                ...this.state,
-                secondsElapsed: this.state.secondsElapsed + 1,
-                hasToRender: this.hasTheRightTime()
-              }, () => {
-                //mediaStatus needs to be set after, because hasToRender has to evaluate to false
-                //this will make sure that the 'mediaStop' topic is published
-                if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
-                  this.setState({
-                    ...this.state,
-                    mediaStatus: "MEDIA_PLAY"
-                  })
-                }
-              });
-            }, 1000);
-          });
-        }
-      }
-    }
-  }
-
-  componentDidUpdate(){
-    console.log('MediaType componentdidupdate', this.props, this.state.hasToRender, this.state.mediaStatus, this._reactInternalFiber.type.toString().slice(1,20))
-    if(this.state.hasToRender === false && 
-      this.state.mediaStatus === "MEDIA_PLAY" &&
-      this.props.repeat !== "true"){
-      //component is finished playing
-      clearInterval(this.intervalId);
-      this.setState({
-        secondsElapsed: 0,
-        hasToRender: false,
-        mediaStatus: "MEDIA_STOP"
-      });
-      //if the parent is a sequence node, then get the next media item
-      this.props.nextMediaItem? this.props.nextMediaItem() : null;
-    }
-    else if(this.state.hasToRender === false && 
-      this.state.mediaStatus === "MEDIA_PLAY" &&
-      this.props.repeat === "true"){
-        this.setState({
-          secondsElapsed: 1,
-          //if hasRender is not set, then it loses
-          //its function call. I do not know why 
-          //since I do not explicitly delete the function call
-          //but I found out through debugging
-          hasToRender: this.hasTheRightTime() 
-        });
-    }
-  }
-
-  componentWillUnmount(){
-    console.log('MediaType componentWillUnmount', this.props);
-    clearInterval(this.intervalId);
-    this.setState({
-      secondsElapsed: 0,
-      hasToRender: false,
-      mediaStatus: "MEDIA_STOP"
-    });
-    //if the parent is a sequence node, then get the next media item
-    // this.props.nextMediaItem? this.props.nextMediaItem() : null;
-  }
-
-  hasTheRightTime(){
-    const hasTheRightTime = this.state.secondsElapsed >= this.state.startTime && (this.state.secondsElapsed <= (this.state.startTime + this.state.duration) || this.state.duration === 0);
-    return hasTheRightTime;
-  }
-
-  hasToRender(){
-    return this.state.hasToRender;
-  }
-
-  render(){
-    return (
-      <div className="MediaType">
-        {this.props.render(this)}
       </div>
     );
   }
@@ -441,17 +306,17 @@ class Video extends Component {
       }
     }
 
-    // //if no leadsto then next media item
-    // if(hasLeadsTo === false){
-    //   // PubSub.publish('mediaStop', this);
-    //   this.setState({
-    //     hasToRender: false
-    //   })
-    // }
+    //if no leadsto then next media item
+    if(hasLeadsTo === false){
+      // PubSub.publish('mediaStop', this);
+      this.setState({
+        hasToRender: false
+      })
+    }
   }
 
   render(){
-    const {x, y, width, height, mediatype} = this.props;
+    const {x, y, width, height} = this.props;
     const styles = {
       display: 'block',
       position: 'absolute',
@@ -463,10 +328,9 @@ class Video extends Component {
     const playlist = this.props.playlist;
     const children = playlist.children;
     console.log('children Video', children);
-    console.log(this);
     
     return(
-      mediatype.hasToRender() && <div className="video">
+      <div className="video">
         <video ref={node => this.video = node} preload="none" autoPlay style={styles} key={this.state.key} onEnded={e => this.handleEnd(e) }>
           {
             children.map( (element, i) => 
@@ -518,6 +382,126 @@ class Source extends Component {
     return(
       <source src={file+'.'+extensions} type={types} />
     );
+  }
+}
+
+
+
+class Sequence extends Component {
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return(
+      <div>
+        Sequence
+      </div>
+    )
+  }
+}
+
+class MediaType extends Component {
+  //keeps time for all specific media types
+  //Checks if it needs to render
+
+  constructor(props){
+    super(props);
+    this.state = {
+      duration: parseFloat(props.duration) || 0,
+      secondsElapsed: 1,
+      hasToRender: true,
+      mediaStatus: "MEDIA_IDLE", //MEDIA_STOP & MEDIA_PLAY & MEDIA_IDLE (is not played yet)
+      startTime: parseFloat(props.startTime) || 0
+    }
+    this.hasToRender = this.hasToRender.bind(this);
+    this.hasTheRightTime = this.hasTheRightTime.bind(this);
+
+    this.intervalId = setInterval(() => {
+      const duration = parseFloat(this.state.duration);
+      this.setState({
+        ...this.state,
+        secondsElapsed: this.state.secondsElapsed + 1,
+        hasToRender: this.hasTheRightTime(),
+      }, () => { 
+        //mediaStatus needs to be set after, because hasToRender has to evaluate to false
+        //this will make sure that the 'mediaStop' topic is published
+        if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
+          this.setState({
+            ...this.state,
+            mediaStatus: "MEDIA_PLAY"
+          })
+        }
+      })
+    }, 1000);
+  }
+
+  componentWillReceiveProps(nextProps){
+    //this method is basically more or less the same as the constructor, since it is needed every time
+    // a new subject loads (I think...) or new media item loads (I'm sure of that)
+    if(propsCompare(this.props, nextProps) === false || this.state.mediaStatus === "MEDIA_STOP"){
+      //reset the component, since there is a new media or subject render because the props are not equal 
+      // or because the media is stopped in a previous subject
+
+      clearInterval(this.intervalId); //clear the interval of the previous media component
+      const mediaItems = this.props.subjectRendererState.mediaItems
+      for(let i = 0; i < mediaItems.length; i++){
+        if(mediaItems[i].type.toString() === this._reactInternalFiber.type.toString()){
+          this.setState({
+            ...this.state,
+            mediaStatus: "MEDIA_IDLE",
+            duration: parseFloat(this.props.duration) || 0,
+            secondsElapsed: 0
+          }, () => {
+            this.intervalId = setInterval(() => {
+              const duration = parseFloat(this.state.duration);
+              this.setState({
+                ...this.state,
+                secondsElapsed: this.state.secondsElapsed + 1,
+                hasToRender: this.hasTheRightTime()
+              }, () => {
+                //mediaStatus needs to be set after, because hasToRender has to evaluate to false
+                //this will make sure that the 'mediaStop' topic is published
+                if(this.state.hasToRender && this.state.mediaStatus === "MEDIA_IDLE"){
+                  this.setState({
+                    ...this.state,
+                    mediaStatus: "MEDIA_PLAY"
+                  })
+                }
+              });
+            }, 1000);
+          });
+        }
+      }
+    }
+  }
+
+  componentDidUpdate(){
+    console.log('componentdidupdate mediatype', this.state.hasToRender, this.state.mediaStatus, this._reactInternalFiber.type.toString().slice(1,20))
+    if(this.state.hasToRender === false && this.state.mediaStatus === "MEDIA_PLAY"){
+      //component is finished playing
+      clearInterval(this.intervalId);
+      this.setState({
+        ...this.state,
+        secondsElapsed: 0,
+        hasToRender: false,
+        mediaStatus: "MEDIA_STOP"
+      });
+      PubSub.publish('mediaStop', this);
+    }
+  }
+
+  hasTheRightTime(){
+    const hasTheRightTime = this.state.secondsElapsed >= this.state.startTime && (this.state.secondsElapsed <= (this.state.startTime + this.state.duration) || this.state.duration === 0);
+    return hasTheRightTime;
+  }
+
+  hasToRender(){
+    return this.state.hasToRender;
+  }
+
+  render(){
+    return null;
   }
 }
 

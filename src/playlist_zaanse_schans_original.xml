@@ -1,14 +1,13 @@
 <ximpel>
     <playlist>
         <subject id="Intro">
-            <sequence>
-                <p duration="3"> ja dit is een alinea </p>
-                <video repeat="true" leadsTo="MenuDeBonteHen" duration="5">
+            <media>
+                <p> ja dit is een alinea </p>
+                <video leadsTo="MenuDeBonteHen" repeat="true" duration="5">
                     <source extensions="mp4" file="videos/Intro"/>
                     <overlay duration="14" height="180px" leadsTo="MenuDeBonteHen" startTime="4" width="180px" x="1700px" y="890px"/>
                 </video>
-                <p duration="4"> Nog een alinea :) </p>
-            </sequence>
+            </media>
         </subject>
 
         <subject id="MenuDeBonteHen">

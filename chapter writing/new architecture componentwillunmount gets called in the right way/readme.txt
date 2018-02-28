@@ -1,0 +1,1 @@
+Componentwillunmount got immediately called after the 5 seconds mark. This has not happened before. It shows that this new architecture is having a more sane relationship with the lifecycle methods of React, and less hacking and craziness needs to occur.
