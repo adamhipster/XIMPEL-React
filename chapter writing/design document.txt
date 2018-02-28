@@ -1,0 +1,18 @@
+DESIGN
+
+Strategies:
+Divide and conquer
+Each component calls the component/tag down below
+
+Techniques:
+Recursion
+
+Requirements:
+* Only display required children (low)
+* Each XML tag is mapped to a component (high)
+* Each XML tag knows only about their component (high)
+* Communication ... happens ... (low)
+
+Drawback with earlier design:
+* Creating the React component tree on the fly triggered a lot of rerenders. 
+  Purely working from the XML file does not.
